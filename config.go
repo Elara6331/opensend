@@ -26,7 +26,7 @@ func NewConfig(actionType string, actionData string) *Config {
 // Create config file
 func (config *Config) CreateFile(dir string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create config file at given directory
 	configFile, err := os.Create(dir + "/config.json")
 	if err != nil { log.Fatal().Err(err).Msg("Error creating config file") }
@@ -45,7 +45,7 @@ func (config *Config) CreateFile(dir string) {
 // Collect all required files into given directory
 func (config *Config) CollectFiles(dir string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// If action type is file
 	if config.ActionType == "file" {
 		// Open file path in config.ActionData
@@ -69,7 +69,7 @@ func (config *Config) CollectFiles(dir string) {
 // Read config file at given file path
 func (config *Config) ReadFile(filePath string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Read file at filePath
 	fileData, err := ioutil.ReadFile(filePath)
 	if err != nil { log.Fatal().Err(err).Msg("Error reading config file") }
@@ -81,7 +81,7 @@ func (config *Config) ReadFile(filePath string) {
 // Execute action specified in config
 func (config *Config) ExecuteAction(srcDir string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// If action is file
 	if config.ActionType == "file" {
 		// Open file from config at given directory

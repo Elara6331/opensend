@@ -12,7 +12,7 @@ import (
 // Discover opensend receivers on the network
 func DiscoverReceivers() ([]string, []string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create zeroconf resolver
 	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil { log.Fatal().Err(err).Msg("Error creating zeroconf resolver") }

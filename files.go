@@ -18,7 +18,7 @@ import (
 // Save encrypted key to file
 func SaveEncryptedKey(encryptedKey []byte, filePath string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create file at given file path
 	keyFile, err := os.Create(filePath)
 	if err != nil { log.Fatal().Err(err).Msg("Error creating file") }
@@ -34,7 +34,7 @@ func SaveEncryptedKey(encryptedKey []byte, filePath string) {
 // Create HTTP server to transmit files
 func SendFiles(dir string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Instantiate http.Server struct
 	srv := &http.Server{}
 	// Listen on all ipv4 addresses on port 9898
@@ -114,7 +114,7 @@ func SendFiles(dir string) {
 // Get files from sender
 func RecvFiles(dir string, senderAddr string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Get server address by getting the IP without the port, prepending http:// and appending :9898
 	serverAddr := "http://" + strings.Split(senderAddr, ":")[0] + ":9898"
 	// GET /index on sender's HTTP server

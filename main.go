@@ -17,15 +17,20 @@ import (
 	"time"
 )
 
+var opensendDir string
+
 func main() {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 
+	if os.Args[1] == "f" {
+		log.Fatal().Msg("Test")
+	}
 	// Get user's home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil { log.Fatal().Err(err).Msg("Error getting home directory") }
 	// Define opensend directory as ~/.opensend
-	opensendDir := homeDir + "/.opensend"
+	opensendDir = homeDir + "/.opensend"
 
 	// Create channel for signals
 	sig := make(chan os.Signal, 1)

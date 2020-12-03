@@ -12,7 +12,7 @@ import (
 // Exchange keys with sender
 func ReceiverKeyExchange(key *rsa.PublicKey) string {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create TCP listener on port 9797
 	listener, err := net.Listen("tcp", ":9797")
 	if err != nil { log.Fatal().Err(err).Msg("Error starting listener") }
@@ -49,7 +49,7 @@ func ReceiverKeyExchange(key *rsa.PublicKey) string {
 // Exchange keys with receiver
 func SenderKeyExchange(receiverIP string) *rsa.PublicKey {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Connect to TCP socket on receiver IP port 9797
 	connection, err := net.Dial("tcp", receiverIP + ":9797")
 	if err != nil { log.Fatal().Err(err).Msg("Error connecting to sender") }
