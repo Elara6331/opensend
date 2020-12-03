@@ -101,7 +101,7 @@ func SendFiles(dir string) {
 	http.HandleFunc("/stop", func(res http.ResponseWriter, req *http.Request) {
 		// Inform user a client has requested server shutdown
 		log.Info().Msg("GET Stop")
-		log.Info().Msg("Shutdown signal received")
+		log.Info().Msg("Stop signal received")
 		// Shutdown server and send to empty context
 		err := srv.Shutdown(context.TODO())
 		if err != nil { log.Fatal().Err(err).Msg("Error stopping server") }
