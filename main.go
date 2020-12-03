@@ -50,6 +50,8 @@ func main() {
 		}
 	}()
 
+	// Create --send-to flag to send to a specific IP
+	sendTo := flag.String("send-to", "", "Use IP address of receiver instead of mDNS")
 	// Create -t flag for type
 	actionType := flag.String("t", "","Type of data being sent")
 	// Create -d flag for data
@@ -65,6 +67,9 @@ func main() {
 	_ = os.Mkdir(opensendDir, 0755)
 	// If -s given
 	if *sendFlag {
+		if *actionType == "" || *actionData == "" {
+			log.Fatal().Msg("Valid action type and data is required to send")
+		}
 		// Create 32 byte buffer
 		sharedKeyBytes := make([]byte, 32)
 		// Read random bytes into buffer
@@ -74,27 +79,40 @@ func main() {
 		sharedKey := hex.EncodeToString(sharedKeyBytes)
 		// Notify user a key has been created
 		log.Info().Msg("Generated random shared key")
-		// Notify user device discovery is beginning
-		log.Info().Msg("Discovering opensend receivers")
-		// Discover all _opensend._tcp.local. mDNS services
-		discoveredReceivers, discoveredIPs := DiscoverReceivers()
-		// Create reader for STDIN
-		reader := bufio.NewReader(os.Stdin)
-		// Print hostnames of each receiver
-		for index, receiver := range discoveredReceivers {
-			// Print hostname and index+1
-			fmt.Println("[" + strconv.Itoa(index + 1) + "]", receiver)
+		// Create variable to store chosen IP
+		var choiceIP string
+		// If IP is provided via --send-to
+		if *sendTo != "" {
+			// Notify user that provided IP is being used
+			log.Info().Msg("IP provided. Skipping discovery.")
+			// Set chosen IP to provided
+			choiceIP = *sendTo
+		// Otherwise
+		} else {
+			// Notify user device discovery is beginning
+			log.Info().Msg("Discovering opensend receivers")
+			// Discover all _opensend._tcp.local. mDNS services
+			discoveredReceivers, discoveredIPs := DiscoverReceivers()
+			// Create reader for STDIN
+			reader := bufio.NewReader(os.Stdin)
+			// Print hostnames of each receiver
+			for index, receiver := range discoveredReceivers {
+				// Print hostname and index+1
+				fmt.Println("["+strconv.Itoa(index+1)+"]", receiver)
+			}
+			// Prompt user for choice
+			fmt.Print("Choose a receiver: ")
+			choiceStr, _ := reader.ReadString('\n')
+			// Convert input to int after trimming spaces
+			choiceInt, err := strconv.Atoi(strings.TrimSpace(choiceStr))
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error converting choice to int")
+			}
+			// Set choiceIndex to choiceInt-1 to allow for indexing
+			choiceIndex := choiceInt - 1
+			// Get IP of chosen receiver
+			choiceIP = discoveredIPs[choiceIndex]
 		}
-		// Prompt user for choice
-		fmt.Print("Choose a receiver: ")
-		choiceStr, _ := reader.ReadString('\n')
-		// Convert input to int after trimming spaces
-		choiceInt, err := strconv.Atoi(strings.TrimSpace(choiceStr))
-		if err != nil { log.Fatal().Err(err).Msg("Error converting choice to int") }
-		// Set choiceIndex to choiceInt-1 to allow for indexing
-		choiceIndex := choiceInt - 1
-		// Get IP of chosen receiver
-		choiceIP := discoveredIPs[choiceIndex]
 		// Notify user of key exchange
 		log.Info().Msg("Performing key exchange")
 		// Exchange RSA keys with receiver
@@ -155,6 +173,8 @@ func main() {
 		log.Info().Msg("Executing JSON action")
 		// Execute JSON action using files within opensend directory
 		config.ExecuteAction(opensendDir)
+	} else {
+		log.Fatal().Msg("You must choose sender or receiver mode using -s or -r")
 	}
 	// Remove opensend directory
 	err = os.RemoveAll(opensendDir)
