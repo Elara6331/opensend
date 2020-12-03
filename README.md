@@ -8,19 +8,19 @@ of the receiver. This key is then saved to a file. Next, the shared AES key is u
 ### Usage
 
 #### Receiver
-Use `opensend -r` to start the receiver
+- Use `opensend -r` to start the receiver
 
 ### Sender
-Use `opensend -s -t <type> -d <date>`
-Type can either by `url` or `file`
-If the type is `url`, the data should be a URL
-If the type is `file`, the data should be a file path
+- Use `opensend -s -t <type> -d <data>`
+- Type can either be `url` or `file`
+- If the type is `url`, the data should be a URL
+- If the type is `file`, the data should be a file path
 
 ### Building
-This project uses go modules, so building is easy
-First, go 1.15+ must be installed
-Then, run `go build` inside the project's directory.
-This will get the dependencies and compile all the files.
+- This project uses go modules, so building is easy
+- First, go 1.15+ must be installed
+- Then, run `go build` inside the project's directory.
+- This will get the dependencies and compile all the files.
 
 ### Installing
 To install, simply follow the building instructions and then run
