@@ -53,6 +53,8 @@ func main() {
 	actionType := flag.String("t", "","Type of data being sent")
 	// Create -d flag for data
 	actionData := flag.String("d", "", "Data to send")
+	// Create --skip-mdns to skip service registration
+	skipMdns := flag.Bool("skip-mdns", false, "Skip zeroconf service registration (use if mdns fails)")
 	// Create -s flag for sending
 	sendFlag := flag.Bool("s", false, "Send data")
 	// Create -r flag for receiving
@@ -136,10 +138,13 @@ func main() {
 		SendFiles(opensendDir)
 	// If -r given
 	} else if *recvFlag {
-		// Register {hostname}._opensend._tcp.local. mDNS service and pass shutdown function
-		zeroconfShutdown := RegisterService()
-		// Shutdown zeroconf server at the end of main()
-		defer zeroconfShutdown()
+		// If --skip-mdns is not given
+		if !*skipMdns {
+			// Register {hostname}._opensend._tcp.local. mDNS service and pass shutdown function
+			zeroconfShutdown := RegisterService()
+			// Shutdown zeroconf server at the end of main()
+			defer zeroconfShutdown()
+		}
 		// Notify user opensend is waiting for key exchange
 		log.Info().Msg("Waiting for sender key exchange")
 		// Generate keypair
