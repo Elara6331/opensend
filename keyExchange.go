@@ -18,31 +18,18 @@ func ReceiverKeyExchange(key *rsa.PublicKey) string {
 	if err != nil { log.Fatal().Err(err).Msg("Error starting listener") }
 	// Create string for sender address
 	var senderAddr string
-	// Create channel to send break signal
-	breakChannel := make(chan bool)
 	for {
 		// Accept connection on listener
 		connection, err := listener.Accept()
+		if err != nil { log.Fatal().Err(err).Msg("Error accepting connections") }
 		// Get sender address and store it in senderAddr
 		senderAddr = connection.RemoteAddr().String()
-		if err != nil { log.Fatal().Err(err).Msg("Error accepting connections") }
-		// Concurrently handle connection
-		go func(conn net.Conn) {
-			// Create gob encoder with connection as io.Writer
-			encoder := gob.NewEncoder(conn)
-			// Encode key into connection
-			err := encoder.Encode(key)
-			if err != nil { log.Fatal().Err(err).Msg("Error encoding key") }
-			// Send signal to breakChannel
-			breakChannel <- true
-		}(connection)
-		// Wait for break signal
-		select {
-		// When break signal arrives
-		case _ = <-breakChannel:
-			// Return sender address
-			return senderAddr
-		}
+		// Create gob encoder with connection as io.Writer
+		encoder := gob.NewEncoder(connection)
+		// Encode key into connection
+		err = encoder.Encode(key)
+		if err != nil { log.Fatal().Err(err).Msg("Error encoding key") }
+		return senderAddr
 	}
 }
 
