@@ -9,9 +9,10 @@
 #### Sender
 - Use `opensend -s -t <type> -d <data>`
 - `type` can either be `url` or `file`
-- If the type is `url`, `data` should be a URL
-- If the type is `file`, `data` should be a file path
+- If `type` is `url`, `data` should be a URL
+- If `type` is `file`, `data` should be a file path
 - Example: `opensend -s -t url -d "https://google.com"`
+- Example: `opensend -s -t file -d ~/file.txt`
 
 ### Building
 - This project uses go modules, so building is easy
