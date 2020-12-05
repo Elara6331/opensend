@@ -176,6 +176,7 @@ func main() {
 		// Execute JSON action using files within opensend directory
 		config.ExecuteAction(opensendDir)
 	} else {
+		flag.Usage()
 		log.Fatal().Msg("You must choose sender or receiver mode using -s or -r")
 	}
 	// Remove opensend directory
