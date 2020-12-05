@@ -38,7 +38,7 @@ func SendFiles(dir string) {
 	// Instantiate http.Server struct
 	srv := &http.Server{}
 	// Listen on all ipv4 addresses on port 9898
-	listener, err := net.Listen("tcp4", ":9898")
+	listener, err := net.Listen("tcp", ":9898")
 	if err != nil { log.Fatal().Err(err).Msg("Error starting listener") }
 
 	// If client connects to /:filePath
@@ -73,7 +73,7 @@ func SendFiles(dir string) {
 		// For each file in listing
 		for _, file := range dirListing {
 			// If the file is not the key
-			if !strings.Contains(file.Name(), "savedKey.aesKey") {
+			if !strings.Contains(file.Name(), "key.aes") {
 				// Append the file path to indexSlice
 				indexSlice = append(indexSlice, dir + "/" + file.Name())
 			}
@@ -90,7 +90,7 @@ func SendFiles(dir string) {
 		// Inform user a client has requested the key
 		log.Info().Msg("GET Key")
 		// Read saved key
-		key, err := ioutil.ReadFile(dir + "/savedKey.aesKey")
+		key, err := ioutil.ReadFile(dir + "/key.aes")
 		if err != nil { log.Fatal().Err(err).Msg("Error reading key") }
 		// Write saved key to ResponseWriter
 		_, err = fmt.Fprint(res, string(key))
@@ -103,7 +103,7 @@ func SendFiles(dir string) {
 		log.Info().Msg("GET Stop")
 		log.Info().Msg("Stop signal received")
 		// Shutdown server and send to empty context
-		err := srv.Shutdown(context.TODO())
+		err := srv.Shutdown(context.Background())
 		if err != nil { log.Fatal().Err(err).Msg("Error stopping server") }
 	})
 
@@ -112,7 +112,7 @@ func SendFiles(dir string) {
 }
 
 // Get files from sender
-func RecvFiles(dir string, senderAddr string) {
+func RecvFiles(senderAddr string) {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Get server address by getting the IP without the port, prepending http:// and appending :9898

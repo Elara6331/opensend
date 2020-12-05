@@ -29,7 +29,8 @@ func EncryptFile(filePath string, newFilePath string, sharedKey string) {
 	// Encode md5 hash bytes into hexadecimal
 	hashedKey := hex.EncodeToString(md5Hash.Sum(nil))
 	// Create new AES cipher
-	block, _ := aes.NewCipher([]byte(hashedKey))
+	block, err := aes.NewCipher([]byte(hashedKey))
+	if err != nil { log.Fatal().Err(err).Msg("Error creating AES cipher") }
 	// Create GCM for AES cipher
 	gcm, err := cipher.NewGCM(block)
 	if err != nil { log.Fatal().Err(err).Msg("Error creating GCM") }
@@ -47,6 +48,7 @@ func EncryptFile(filePath string, newFilePath string, sharedKey string) {
 	defer newFile.Close()
 	// Write ciphertext to new file
 	bytesWritten, err := newFile.Write(ciphertext)
+	if err != nil { log.Fatal().Err(err).Msg("Error writing to file") }
 	// Log bytes written and to which file
 	log.Info().Str("file", filepath.Base(newFilePath)).Msg("Wrote " + strconv.Itoa(bytesWritten) + " bytes")
 }
@@ -81,6 +83,7 @@ func DecryptFile(filePath string, newFilePath string, sharedKey string) {
 	defer newFile.Close()
 	// Write ciphertext to new file
 	bytesWritten, err := newFile.Write(plaintext)
+	if err != nil { log.Fatal().Err(err).Msg("Error writing to file") }
 	// Log bytes written and to which file
 	log.Info().Str("file", filepath.Base(newFilePath)).Msg("Wrote " + strconv.Itoa(bytesWritten) + " bytes")
 }
@@ -99,7 +102,7 @@ func EncryptFiles(dir string, sharedKey string) {
 			EncryptFile(path, path + ".enc", sharedKey)
 			// Remove unencrypted file
 			err := os.Remove(path)
-			if err != nil {return err}
+			if err != nil { return err }
 		}
 		// Return nil if no error occurs
 		return nil

@@ -104,9 +104,7 @@ func main() {
 			choiceStr, _ := reader.ReadString('\n')
 			// Convert input to int after trimming spaces
 			choiceInt, err := strconv.Atoi(strings.TrimSpace(choiceStr))
-			if err != nil {
-				log.Fatal().Err(err).Msg("Error converting choice to int")
-			}
+			if err != nil { log.Fatal().Err(err).Msg("Error converting choice to int") }
 			// Set choiceIndex to choiceInt-1 to allow for indexing
 			choiceIndex := choiceInt - 1
 			// Get IP of chosen receiver
@@ -120,8 +118,8 @@ func main() {
 		log.Info().Msg("Receiver key received")
 		// Encrypt shared key using RSA public key
 		key := EncryptKey(sharedKey, rawKey)
-		// Save encrypted key in opensend directory as savedKey.aesKey
-		SaveEncryptedKey(key, opensendDir + "/savedKey.aesKey")
+		// Save encrypted key in opensend directory as key.aes
+		SaveEncryptedKey(key, opensendDir + "/key.aes")
 		// Instantiate Config object
 		config := NewConfig(*actionType, *actionData)
 		// Collect any files that may be required for transaction into opensend directory
@@ -145,10 +143,12 @@ func main() {
 			// Shutdown zeroconf server at the end of main()
 			defer zeroconfShutdown()
 		}
-		// Notify user opensend is waiting for key exchange
-		log.Info().Msg("Waiting for sender key exchange")
+		// Notify user keypair is being generated
+		log.Info().Msg("Generating RSA keypair")
 		// Generate keypair
 		privateKey, publicKey := GenerateRSAKeypair()
+		// Notify user opensend is waiting for key exchange
+		log.Info().Msg("Waiting for sender key exchange")
 		// Exchange keys with sender
 		senderIP := ReceiverKeyExchange(publicKey)
 		// Sleep 300ms to allow sender time to start HTTP server
@@ -156,7 +156,7 @@ func main() {
 		// Notify user files are being received
 		log.Info().Msg("Receiving files from server (This may take a while)")
 		// Get files from sender and place them into the opensend directory
-		RecvFiles(opensendDir, senderIP)
+		RecvFiles(senderIP)
 		// Get encrypted shared key from sender
 		encryptedKey := GetKey(senderIP)
 		// Send stop signal to sender's HTTP server
@@ -180,5 +180,5 @@ func main() {
 	}
 	// Remove opensend directory
 	err = os.RemoveAll(opensendDir)
-	if err != nil { log.Fatal().Err(err).Msg("Error remove opensend dir") }
+	if err != nil { log.Fatal().Err(err).Msg("Error removing opensend directory") }
 }
