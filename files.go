@@ -75,7 +75,7 @@ func SendFiles(dir string) {
 			// If the file is not the key
 			if !strings.Contains(file.Name(), "key.aes") {
 				// Append the file path to indexSlice
-				indexSlice = append(indexSlice, dir + "/" + file.Name())
+				indexSlice = append(indexSlice, file.Name())
 			}
 		}
 		// Join index slice into string
@@ -142,7 +142,7 @@ func RecvFiles(senderAddr string) {
 		// If server responded with 200 OK
 		if response.StatusCode == http.StatusOK {
 			// Create new file at index filepath
-			newFile, err := os.Create(file)
+			newFile, err := os.Create(opensendDir + "/" + file)
 			if err != nil { log.Fatal().Err(err).Msg("Error creating file") }
 			// Copy response body to new file
 			bytesWritten, err := io.Copy(newFile, response.Body)
