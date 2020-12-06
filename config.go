@@ -148,7 +148,7 @@ func (config *Config) ExecuteAction(srcDir string) {
 		// Set destination directory to ~/Downloads/{dir name}
 		dstDir := homeDir + "/Downloads/" + config.ActionData
 		// Try to create destination directory
-		err := os.Mkdir(dstDir, 0755)
+		err := os.MkdirAll(dstDir, 0755)
 		if err != nil { log.Fatal().Err(err).Msg("Error creating directory") }
 		// Try to open tar archive file
 		tarFile, err := os.Open(srcDir + "/" + config.ActionData + ".tar")
