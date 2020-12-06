@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Save encrypted key to file
@@ -117,9 +118,14 @@ func RecvFiles(senderAddr string) {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Get server address by getting the IP without the port, prepending http:// and appending :9898
 	serverAddr := "http://" + strings.Split(senderAddr, ":")[0] + ":9898"
+	var response *http.Response
 	// GET /index on sender's HTTP server
 	response, err := http.Get(serverAddr + "/index")
-	if err != nil { log.Fatal().Err(err).Msg("Error getting index") }
+	if err != nil {
+		time.Sleep(500*time.Millisecond)
+		response, err = http.Get(serverAddr + "/index")
+		if err != nil { log.Fatal().Err(err).Msg("Error getting index") }
+	}
 	// Close response body at the end of this function
 	defer response.Body.Close()
 	// Create index slice for storage of file index
