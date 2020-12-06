@@ -125,7 +125,7 @@ func RecvFiles(senderAddr string) {
 		indexGetFailed := true
 		for indexGetFailed {
 			response, err = http.Get(serverAddr + "/index")
-			if err != nil { log.Fatal().Err(err).Msg("Error getting index") } else {indexGetFailed = false}
+			if err == nil { indexGetFailed = false }
 			time.Sleep(500*time.Millisecond)
 		}
 	}
