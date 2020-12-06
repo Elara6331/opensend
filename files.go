@@ -121,11 +121,16 @@ func RecvFiles(senderAddr string) {
 	var response *http.Response
 	// GET /index on sender's HTTP server
 	response, err := http.Get(serverAddr + "/index")
+	// If error occurred, retry every 500ms
 	if err != nil {
+		// Set index failed to true
 		indexGetFailed := true
 		for indexGetFailed {
+			// GET /index on sender's HTTP server
 			response, err = http.Get(serverAddr + "/index")
+			// If no error, set index failed to false
 			if err == nil { indexGetFailed = false }
+			// Wait 500s
 			time.Sleep(500*time.Millisecond)
 		}
 	}
