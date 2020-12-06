@@ -130,7 +130,7 @@ func RecvFiles(senderAddr string) {
 			response, err = http.Get(serverAddr + "/index")
 			// If no error, set index failed to false
 			if err == nil { indexGetFailed = false }
-			// Wait 500s
+			// Wait 500ms
 			time.Sleep(500*time.Millisecond)
 		}
 	}

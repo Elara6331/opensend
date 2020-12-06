@@ -117,10 +117,7 @@ func (config *Config) ReadFile(filePath string) {
 }
 
 // Execute action specified in config
-func (config *Config) ExecuteAction(srcDir string) {
-	// Get user's home directory
-	homeDir, err := os.UserHomeDir()
-	if err != nil { log.Fatal().Err(err).Msg("Error getting home directory") }
+func (config *Config) ExecuteAction(srcDir string, destDir string) {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// If action is file
@@ -131,7 +128,7 @@ func (config *Config) ExecuteAction(srcDir string) {
 		// Close source file at the end of this function
 		defer src.Close()
 		// Create file in user's Downloads directory
-		dst, err := os.Create(homeDir + "/Downloads/" + config.ActionData)
+		dst, err := os.Create(filepath.Clean(destDir) + "/" + config.ActionData)
 		if err != nil { log.Fatal().Err(err).Msg("Error creating file") }
 		// Close destination file at the end of this function
 		defer dst.Close()
@@ -146,7 +143,7 @@ func (config *Config) ExecuteAction(srcDir string) {
 	// If action is dir
 	} else if config.ActionType == "dir" {
 		// Set destination directory to ~/Downloads/{dir name}
-		dstDir := homeDir + "/Downloads/" + config.ActionData
+		dstDir := filepath.Clean(destDir) + "/" + config.ActionData
 		// Try to create destination directory
 		err := os.MkdirAll(dstDir, 0755)
 		if err != nil { log.Fatal().Err(err).Msg("Error creating directory") }
@@ -179,7 +176,7 @@ func (config *Config) ExecuteAction(srcDir string) {
 			// If regular file
 			case tar.TypeReg:
 				// Try to create containing folder ignoring errors
-				_ = os.MkdirAll(strings.TrimSuffix(targetPath, filepath.Base(targetPath)), 0755)
+				_ = os.MkdirAll(filepath.Dir(targetPath), 0755)
 				// Create file with mode contained in header at target path
 				dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 				if err != nil { log.Fatal().Err(err).Msg("Error creating file during unarchiving") }

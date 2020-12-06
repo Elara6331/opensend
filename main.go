@@ -49,12 +49,14 @@ func main() {
 
 	// Create --send-to flag to send to a specific IP
 	sendTo := flag.String("send-to", "", "Use IP address of receiver instead of mDNS")
+	// Create --dest-dir flag to save to a specified folder
+	destDir := flag.String("dest-dir", homeDir + "/Downloads", "Destination directory for files or dirs sent over opensend")
+	// Create --skip-mdns to skip service registration
+	skipMdns := flag.Bool("skip-mdns", false, "Skip zeroconf service registration (use if mdns fails)")
 	// Create -t flag for type
 	actionType := flag.String("t", "","Type of data being sent")
 	// Create -d flag for data
 	actionData := flag.String("d", "", "Data to send")
-	// Create --skip-mdns to skip service registration
-	skipMdns := flag.Bool("skip-mdns", false, "Skip zeroconf service registration (use if mdns fails)")
 	// Create -s flag for sending
 	sendFlag := flag.Bool("s", false, "Send data")
 	// Create -r flag for receiving
@@ -174,7 +176,7 @@ func main() {
 		// Notify user that action is being executed
 		log.Info().Msg("Executing JSON action")
 		// Execute JSON action using files within opensend directory
-		config.ExecuteAction(opensendDir)
+		config.ExecuteAction(opensendDir, *destDir)
 	} else {
 		flag.Usage()
 		log.Fatal().Msg("You must choose sender or receiver mode using -s or -r")
