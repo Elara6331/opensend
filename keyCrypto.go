@@ -1,13 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"io/ioutil"
-	"net/http"
+	"net"
 	"os"
 	"strings"
 )
@@ -26,27 +28,28 @@ func GenerateRSAKeypair() (*rsa.PrivateKey, *rsa.PublicKey) {
 }
 
 // Get public key from sender
-func GetKey(senderAddr string) []byte {
+func GetKey(connection net.Conn) []byte {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
-	// Get server address by getting the IP without the port, prepending http:// and appending :9898
-	serverAddr := "http://" + strings.Split(senderAddr, ":")[0] + ":9898"
-	// GET /key on the sender's HTTP server
-	response, err := http.Get(serverAddr + "/key")
+	// Send key request to connection
+	_, err := fmt.Fprintln(connection, "key;")
+	if err != nil { log.Fatal().Err(err).Msg("Error sending key request") }
+	// Read received message
+	message, err := bufio.NewReader(connection).ReadString('\n')
 	if err != nil { log.Fatal().Err(err).Msg("Error getting key") }
-	// Close response body at the end of this function
-	defer response.Body.Close()
-	// If server responded with 200 OK
-	if response.StatusCode == http.StatusOK {
-		// Read response body into key
-		key, err := ioutil.ReadAll(response.Body)
-		if err != nil { log.Fatal().Err(err).Msg("Error reading HTTP response") }
+	// Process received message
+	procMessage := strings.Split(strings.TrimSpace(message), ";")
+	// If ok code returned
+	if procMessage[0] == "OK" {
+		// Decode received hex string into key
+		key, err := hex.DecodeString(procMessage[1])
+		if err != nil { log.Fatal().Err(err).Msg("Error reading key") }
 		// Return key
 		return key
 	// Otherwise
 	} else {
-		// Fatally log status code
-		if err != nil { log.Fatal().Int("code", response.StatusCode).Msg("HTTP Error Response Code Received") }
+		// Fatally log
+		if err != nil { log.Fatal().Msg("Server reported error") }
 	}
 	// Return nil if all else fails
 	return nil

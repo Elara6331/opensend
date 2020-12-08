@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,6 +24,24 @@ type Config struct {
 // Instantiate and return a new Config struct
 func NewConfig(actionType string, actionData string) *Config {
 	return &Config{ActionType: actionType, ActionData: actionData}
+}
+
+func (config *Config) Validate()  {
+	// Parse URL in config
+	urlParser, err := url.Parse(config.ActionData)
+	// If there was an error parsing
+	if err != nil {
+		// Alert user of invalid url
+		log.Fatal().Err(err).Msg("Invalid URL")
+	// If scheme is not detected
+	} else if urlParser.Scheme == "" {
+		// Alert user of invalid scheme
+		log.Fatal().Msg("Invalid URL scheme")
+	// If host is not detected
+	} else if urlParser.Host == "" {
+		// Alert user of invalid host
+		log.Fatal().Msg("Invalid URL host")
+	}
 }
 
 // Create config file
@@ -137,8 +156,23 @@ func (config *Config) ExecuteAction(srcDir string, destDir string) {
 		if err != nil { log.Fatal().Err(err).Msg("Error copying data to file") }
 	// If action is url
 	} else if config.ActionType == "url" {
+		// Parse received URL
+		urlParser, err := url.Parse(config.ActionData)
+		// If there was an error parsing
+		if err != nil {
+			// Alert user of invalid url
+			log.Fatal().Err(err).Msg("Invalid URL")
+		// If scheme is not detected
+		} else if urlParser.Scheme == "" {
+			// Alert user of invalid scheme
+			log.Fatal().Msg("Invalid URL scheme")
+		// If host is not detected
+		} else if urlParser.Host == "" {
+			// Alert user of invalid host
+			log.Fatal().Msg("Invalid URL host")
+		}
 		// Attempt to open URL in browser
-		err := browser.OpenURL(config.ActionData)
+		err = browser.OpenURL(config.ActionData)
 		if err != nil { log.Fatal().Err(err).Msg("Error opening browser") }
 	// If action is dir
 	} else if config.ActionType == "dir" {

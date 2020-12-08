@@ -112,6 +112,14 @@ func main() {
 			// Get IP of chosen receiver
 			choiceIP = discoveredIPs[choiceIndex]
 		}
+		// Instantiate Config object
+		config := NewConfig(*actionType, *actionData)
+		// Validate data in config struct
+		config.Validate()
+		// Collect any files that may be required for transaction into opensend directory
+		config.CollectFiles(opensendDir)
+		// Create config file in opensend directory
+		config.CreateFile(opensendDir)
 		// Notify user of key exchange
 		log.Info().Msg("Performing key exchange")
 		// Exchange RSA keys with receiver
@@ -122,12 +130,6 @@ func main() {
 		key := EncryptKey(sharedKey, rawKey)
 		// Save encrypted key in opensend directory as key.aes
 		SaveEncryptedKey(key, opensendDir + "/key.aes")
-		// Instantiate Config object
-		config := NewConfig(*actionType, *actionData)
-		// Collect any files that may be required for transaction into opensend directory
-		config.CollectFiles(opensendDir)
-		// Create config file in opensend directory
-		config.CreateFile(opensendDir)
 		// Notify user file encryption is beginning
 		log.Info().Msg("Encrypting files")
 		// Encrypt all files in opensend directory using shared key
@@ -157,12 +159,14 @@ func main() {
 		time.Sleep(300*time.Millisecond)
 		// Notify user files are being received
 		log.Info().Msg("Receiving files from server (This may take a while)")
+		// Connect to sender's TCP socket
+		connection := ConnectToSender(senderIP)
 		// Get files from sender and place them into the opensend directory
-		RecvFiles(senderIP)
+		RecvFiles(connection)
 		// Get encrypted shared key from sender
-		encryptedKey := GetKey(senderIP)
+		encryptedKey := GetKey(connection)
 		// Send stop signal to sender's HTTP server
-		SendSrvStopSignal(senderIP)
+		SendSrvStopSignal(connection)
 		// Decrypt shared key
 		sharedKey := DecryptKey(encryptedKey, privateKey)
 		// Notify user file decryption is beginning
