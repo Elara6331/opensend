@@ -27,20 +27,22 @@ func NewConfig(actionType string, actionData string) *Config {
 }
 
 func (config *Config) Validate()  {
-	// Parse URL in config
-	urlParser, err := url.Parse(config.ActionData)
-	// If there was an error parsing
-	if err != nil {
-		// Alert user of invalid url
-		log.Fatal().Err(err).Msg("Invalid URL")
-	// If scheme is not detected
-	} else if urlParser.Scheme == "" {
-		// Alert user of invalid scheme
-		log.Fatal().Msg("Invalid URL scheme")
-	// If host is not detected
-	} else if urlParser.Host == "" {
-		// Alert user of invalid host
-		log.Fatal().Msg("Invalid URL host")
+	if config.ActionType == "url" {
+		// Parse URL in config
+		urlParser, err := url.Parse(config.ActionData)
+		// If there was an error parsing
+		if err != nil {
+			// Alert user of invalid url
+			log.Fatal().Err(err).Msg("Invalid URL")
+			// If scheme is not detected
+		} else if urlParser.Scheme == "" {
+			// Alert user of invalid scheme
+			log.Fatal().Msg("Invalid URL scheme")
+			// If host is not detected
+		} else if urlParser.Host == "" {
+			// Alert user of invalid host
+			log.Fatal().Msg("Invalid URL host")
+		}
 	}
 }
 
