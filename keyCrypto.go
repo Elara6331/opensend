@@ -20,7 +20,9 @@ func GenerateRSAKeypair() (*rsa.PrivateKey, *rsa.PublicKey) {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Generate private/public RSA keypair
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil { log.Fatal().Err(err).Msg("Error generating RSA keypair") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error generating RSA keypair")
+	}
 	// Get public key
 	publicKey := privateKey.PublicKey
 	// Return keypair
@@ -33,23 +35,31 @@ func GetKey(connection net.Conn) []byte {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Send key request to connection
 	_, err := fmt.Fprintln(connection, "key;")
-	if err != nil { log.Fatal().Err(err).Msg("Error sending key request") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error sending key request")
+	}
 	// Read received message
 	message, err := bufio.NewReader(connection).ReadString('\n')
-	if err != nil { log.Fatal().Err(err).Msg("Error getting key") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error getting key")
+	}
 	// Process received message
 	procMessage := strings.Split(strings.TrimSpace(message), ";")
 	// If ok code returned
 	if procMessage[0] == "OK" {
 		// Decode received hex string into key
 		key, err := hex.DecodeString(procMessage[1])
-		if err != nil { log.Fatal().Err(err).Msg("Error reading key") }
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error reading key")
+		}
 		// Return key
 		return key
-	// Otherwise
+		// Otherwise
 	} else {
 		// Fatally log
-		if err != nil { log.Fatal().Msg("Server reported error") }
+		if err != nil {
+			log.Fatal().Msg("Server reported error")
+		}
 	}
 	// Return nil if all else fails
 	return nil
@@ -61,7 +71,9 @@ func EncryptKey(sharedKey string, recvPubKey *rsa.PublicKey) []byte {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Encrypt shared key using RSA
 	encryptedSharedKey, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, recvPubKey, []byte(sharedKey), nil)
-	if err != nil { log.Fatal().Err(err).Msg("Error encrypting shared key") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error encrypting shared key")
+	}
 	// Return encrypted key
 	return encryptedSharedKey
 }
@@ -70,7 +82,9 @@ func EncryptKey(sharedKey string, recvPubKey *rsa.PublicKey) []byte {
 func DecryptKey(encryptedKey []byte, privateKey *rsa.PrivateKey) string {
 	// Decrypt shared key using RSA
 	decryptedKey, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, encryptedKey, nil)
-	if err != nil { log.Fatal().Err(err).Msg("Error decrypting shared key") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error decrypting shared key")
+	}
 	// Get string of decrypted key
 	sharedKey := string(decryptedKey)
 	// Return shared key

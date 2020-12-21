@@ -15,7 +15,9 @@ func DiscoverReceivers() ([]string, []string) {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create zeroconf resolver
 	resolver, err := zeroconf.NewResolver(nil)
-	if err != nil { log.Fatal().Err(err).Msg("Error creating zeroconf resolver") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error creating zeroconf resolver")
+	}
 	// Create channel for zeroconf entries
 	entries := make(chan *zeroconf.ServiceEntry)
 	// Create slice to store hostnames of discovered receivers
@@ -39,7 +41,9 @@ func DiscoverReceivers() ([]string, []string) {
 	defer cancel()
 	// Browse for mDNS entries
 	err = resolver.Browse(ctx, "_opensend._tcp", "local.", entries)
-	if err != nil { log.Fatal().Err(err).Msg("Error browsing zeroconf services") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error browsing zeroconf services")
+	}
 
 	// Send Done signal to context
 	<-ctx.Done()
@@ -53,7 +57,9 @@ func RegisterService() func() {
 	hostname, _ := os.Hostname()
 	// Register zeroconf service {hostname}._opensend._tcp.local.
 	server, err := zeroconf.Register(hostname, "_opensend._tcp", "local.", 9797, []string{"txtv=0", "lo=1", "la=2"}, nil)
-	if err != nil { log.Fatal().Err(err).Msg("Error registering zeroconf service") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error registering zeroconf service")
+	}
 	// Return server.Shutdown() function to allow for shutdown in main()
 	return server.Shutdown
 }

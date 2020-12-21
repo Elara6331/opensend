@@ -23,12 +23,16 @@ func SaveEncryptedKey(encryptedKey []byte, filePath string) {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create file at given file path
 	keyFile, err := os.Create(filePath)
-	if err != nil { log.Fatal().Err(err).Msg("Error creating file") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error creating file")
+	}
 	// Close file at the end of this function
 	defer keyFile.Close()
 	// Write encrypted key to file
 	bytesWritten, err := keyFile.Write(encryptedKey)
-	if err != nil { log.Fatal().Err(err).Msg("Error writing key to file") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error writing key to file")
+	}
 	// Log bytes written
 	log.Info().Str("file", filepath.Base(filePath)).Msg("Wrote " + strconv.Itoa(bytesWritten) + " bytes")
 }
@@ -39,42 +43,59 @@ func SendFiles(dir string) {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create TCP listener on port 9898
 	listener, err := net.Listen("tcp", ":9898")
-	if err != nil { log.Fatal().Err(err).Msg("Error starting listener") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error starting listener")
+	}
 	// Accept connection on listener
 	connection, err := listener.Accept()
-	if err != nil { log.Fatal().Err(err).Msg("Error accepting connection") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error accepting connection")
+	}
 	// Close connection at the end of this function
 	defer connection.Close()
 	// Create for loop to listen for messages on connection
-	connectionLoop: for {
+connectionLoop:
+	for {
 		// Use ConsoleWriter logger with TCPFatalHook
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(TCPFatalHook{conn: connection})
 		// Attempt to read new message on connection
 		data, err := bufio.NewReader(connection).ReadString('\n')
 		// If no message detected, try again
-		if err != nil && err.Error() == "EOF" { continue }
+		if err != nil && err.Error() == "EOF" {
+			continue
+		}
 		// If non-EOF error, fatally log
-		if err != nil { log.Fatal().Err(err).Msg("Error reading data") }
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error reading data")
+		}
 		// Process received data
 		processedData := strings.Split(strings.TrimSpace(data), ";")
 		// If processedData is empty, alert the user of invalid data
-		if len(processedData) < 1 { log.Fatal().Str("data", data).Msg("Received data invalid") }
+		if len(processedData) < 1 {
+			log.Fatal().Str("data", data).Msg("Received data invalid")
+		}
 		switch processedData[0] {
 		case "key":
 			// Inform user client has requested key
 			log.Info().Msg("Key requested")
 			// Read saved key
 			key, err := ioutil.ReadFile(dir + "/key.aes")
-			if err != nil { log.Fatal().Err(err).Msg("Error reading key") }
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error reading key")
+			}
 			// Write saved key to ResponseWriter
-			_, err = fmt.Fprintln(connection, "OK;" + hex.EncodeToString(key) + ";")
-			if err != nil { log.Fatal().Err(err).Msg("Error writing response") }
+			_, err = fmt.Fprintln(connection, "OK;"+hex.EncodeToString(key)+";")
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error writing response")
+			}
 		case "index":
 			// Inform user a client has requested the file index
 			log.Info().Msg("Index requested")
 			// Get directory listing
 			dirListing, err := ioutil.ReadDir(dir)
-			if err != nil { log.Fatal().Err(err).Msg("Error reading directory") }
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error reading directory")
+			}
 			// Create new slice to house filenames for index
 			var indexSlice []string
 			// For each file in listing
@@ -88,8 +109,10 @@ func SendFiles(dir string) {
 			// Join index slice into string
 			indexStr := strings.Join(indexSlice, "|")
 			// Write index to ResponseWriter
-			_, err = fmt.Fprintln(connection, "OK;" + indexStr + ";")
-			if err != nil { log.Fatal().Err(err).Msg("Error writing response") }
+			_, err = fmt.Fprintln(connection, "OK;"+indexStr+";")
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error writing response")
+			}
 		case "file":
 			// If processedData only has one entry
 			if len(processedData) == 1 {
@@ -114,8 +137,10 @@ func SendFiles(dir string) {
 				log.Info().Str("file", file).Msg("File requested")
 			}
 			// Write file as hex to connection
-			_, err = fmt.Fprintln(connection, "OK;" + hex.EncodeToString(fileData) + ";")
-			if err != nil { log.Fatal().Err(err).Msg("Error writing response") }
+			_, err = fmt.Fprintln(connection, "OK;"+hex.EncodeToString(fileData)+";")
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error writing response")
+			}
 		case "stop":
 			// Alert user that stop signal has been received
 			log.Info().Msg("Received stop signal")
@@ -162,40 +187,56 @@ func RecvFiles(connection net.Conn) {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Request index from sender
 	_, err := fmt.Fprintln(connection, "index;")
-	if err != nil { log.Fatal().Err(err).Msg("Error sending index request") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error sending index request")
+	}
 	// Read received message
 	message, err := bufio.NewReader(connection).ReadString('\n')
-	if err != nil { log.Fatal().Err(err).Msg("Error getting index") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error getting index")
+	}
 	// Process received message
 	procMessage := strings.Split(strings.TrimSpace(message), ";")
 	// If non-ok code returned, fatally log
-	if procMessage[0] != "OK" { log.Fatal().Err(err).Msg("Sender reported error") }
+	if procMessage[0] != "OK" {
+		log.Fatal().Err(err).Msg("Sender reported error")
+	}
 	// Get index from message
 	index := strings.Split(strings.TrimSpace(procMessage[1]), "|")
 	for _, file := range index {
 		// Get current file in index
-		_, err = fmt.Fprintln(connection, "file;" + file + ";")
-		if err != nil { log.Fatal().Err(err).Msg("Error sending file request") }
+		_, err = fmt.Fprintln(connection, "file;"+file+";")
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error sending file request")
+		}
 		// Read received message
 		message, err := bufio.NewReader(connection).ReadString('\n')
-		if err != nil { log.Fatal().Err(err).Msg("Error getting file") }
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error getting file")
+		}
 		// Process received message
 		procMessage := strings.Split(message, ";")
 		// If non-ok code returned
 		if procMessage[0] != "OK" {
 			// fatally log
 			log.Fatal().Err(err).Msg("Sender reported error")
-		// Otherwise
+			// Otherwise
 		} else {
 			// Create new file at index filepath
 			newFile, err := os.Create(opensendDir + "/" + file)
-			if err != nil { log.Fatal().Err(err).Msg("Error creating file") }
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error creating file")
+			}
 			// Decode file data from hex string
 			fileData, err := hex.DecodeString(strings.TrimSpace(procMessage[1]))
-			if err != nil { log.Fatal().Err(err).Msg("Error decoding hex") }
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error decoding hex")
+			}
 			// Copy response body to new file
 			bytesWritten, err := io.Copy(newFile, bytes.NewBuffer(fileData))
-			if err != nil { log.Fatal().Err(err).Msg("Error writing to file") }
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error writing to file")
+			}
 			// Log bytes written
 			log.Info().Str("file", filepath.Base(file)).Msg("Wrote " + strconv.Itoa(int(bytesWritten)) + " bytes")
 			// Close new file

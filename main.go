@@ -25,7 +25,9 @@ func main() {
 
 	// Get user's home directory
 	homeDir, err := os.UserHomeDir()
-	if err != nil { log.Fatal().Err(err).Msg("Error getting home directory") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error getting home directory")
+	}
 	// Define opensend directory as ~/.opensend
 	opensendDir = homeDir + "/.opensend"
 
@@ -50,11 +52,11 @@ func main() {
 	// Create --send-to flag to send to a specific IP
 	sendTo := flag.String("send-to", "", "Use IP address of receiver instead of mDNS")
 	// Create --dest-dir flag to save to a specified folder
-	destDir := flag.String("dest-dir", homeDir + "/Downloads", "Destination directory for files or dirs sent over opensend")
+	destDir := flag.String("dest-dir", homeDir+"/Downloads", "Destination directory for files or dirs sent over opensend")
 	// Create --skip-mdns to skip service registration
 	skipMdns := flag.Bool("skip-mdns", false, "Skip zeroconf service registration (use if mdns fails)")
 	// Create -t flag for type
-	actionType := flag.String("t", "","Type of data being sent")
+	actionType := flag.String("t", "", "Type of data being sent")
 	// Create -d flag for data
 	actionData := flag.String("d", "", "Data to send")
 	// Create -s flag for sending
@@ -75,7 +77,9 @@ func main() {
 		sharedKeyBytes := make([]byte, 32)
 		// Read random bytes into buffer
 		_, err := io.ReadFull(rand.Reader, sharedKeyBytes)
-		if err != nil { log.Fatal().Err(err).Msg("Error generating random bytes") }
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error generating random bytes")
+		}
 		// Encode random bytes to hexadecimal
 		sharedKey := hex.EncodeToString(sharedKeyBytes)
 		// Notify user a key has been created
@@ -88,7 +92,7 @@ func main() {
 			log.Info().Msg("IP provided. Skipping discovery.")
 			// Set chosen IP to provided
 			choiceIP = *sendTo
-		// Otherwise
+			// Otherwise
 		} else {
 			// Notify user device discovery is beginning
 			log.Info().Msg("Discovering opensend receivers")
@@ -106,7 +110,9 @@ func main() {
 			choiceStr, _ := reader.ReadString('\n')
 			// Convert input to int after trimming spaces
 			choiceInt, err := strconv.Atoi(strings.TrimSpace(choiceStr))
-			if err != nil { log.Fatal().Err(err).Msg("Error converting choice to int") }
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error converting choice to int")
+			}
 			// Set choiceIndex to choiceInt-1 to allow for indexing
 			choiceIndex := choiceInt - 1
 			// Get IP of chosen receiver
@@ -129,7 +135,7 @@ func main() {
 		// Encrypt shared key using RSA public key
 		key := EncryptKey(sharedKey, rawKey)
 		// Save encrypted key in opensend directory as key.aes
-		SaveEncryptedKey(key, opensendDir + "/key.aes")
+		SaveEncryptedKey(key, opensendDir+"/key.aes")
 		// Notify user file encryption is beginning
 		log.Info().Msg("Encrypting files")
 		// Encrypt all files in opensend directory using shared key
@@ -138,7 +144,7 @@ func main() {
 		log.Info().Msg("Server started on port 9898")
 		// Send all files in opensend directory using an HTTP server on port 9898
 		SendFiles(opensendDir)
-	// If -r given
+		// If -r given
 	} else if *recvFlag {
 		// If --skip-mdns is not given
 		if !*skipMdns {
@@ -156,7 +162,7 @@ func main() {
 		// Exchange keys with sender
 		senderIP := ReceiverKeyExchange(publicKey)
 		// Sleep 300ms to allow sender time to start HTTP server
-		time.Sleep(300*time.Millisecond)
+		time.Sleep(300 * time.Millisecond)
 		// Notify user files are being received
 		log.Info().Msg("Receiving files from server (This may take a while)")
 		// Connect to sender's TCP socket
@@ -187,5 +193,7 @@ func main() {
 	}
 	// Remove opensend directory
 	err = os.RemoveAll(opensendDir)
-	if err != nil { log.Fatal().Err(err).Msg("Error removing opensend directory") }
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error removing opensend directory")
+	}
 }

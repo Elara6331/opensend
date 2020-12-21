@@ -8,7 +8,7 @@ import (
 )
 
 // Fatal hook to run in case of Fatal error
-type FatalHook struct {}
+type FatalHook struct{}
 
 // Run function on trigger
 func (hook FatalHook) Run(_ *zerolog.Event, level zerolog.Level, _ string) {
