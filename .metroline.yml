@@ -1,0 +1,6 @@
+version: '1'
+jobs:
+  build:
+    image: golang:latest
+    script:
+      - go build
