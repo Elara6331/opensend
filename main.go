@@ -17,19 +17,43 @@ import (
 	"time"
 )
 
-var opensendDir string
+var workDir *string
 
 func main() {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 
-	// Get user's home directory
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error getting home directory")
+	confPath := GetConfigPath()
+	config := NewConfig(confPath)
+
+	// Create --send-to flag to send to a specific IP
+	sendTo := flag.String("send-to", "", "Use IP address of receiver instead of mDNS")
+	// Create --dest-dir flag to save to a specified folder
+	destDir := flag.String("dest-dir", "", "Destination directory for files or dirs sent over opensend")
+	workDir = flag.String("work-dir", "", "Working directory for opensend")
+	givenCfgPath := flag.String("config", "", "Opensend config to use")
+	// Create --skip-mdns to skip service registration
+	skipMdns := flag.Bool("skip-mdns", config.Receiver.SkipZeroconf, "Skip zeroconf service registration (use if mdns fails)")
+	// Create -t flag for type
+	actionType := flag.String("t", "", "Type of data being sent")
+	// Create -d flag for data
+	actionData := flag.String("d", "", "Data to send")
+	// Create -s flag for sending
+	sendFlag := flag.Bool("s", false, "Send data")
+	// Create -r flag for receiving
+	recvFlag := flag.Bool("r", false, "Receive data")
+	// Parse flags
+	flag.Parse()
+	if *givenCfgPath != "" {
+		config = NewConfig(*givenCfgPath)
 	}
-	// Define opensend directory as ~/.opensend
-	opensendDir = homeDir + "/.opensend"
+	if *workDir == "" {
+		if *sendFlag {
+			*workDir = ExpandPath(config.Sender.WorkDir)
+		} else {
+			*workDir = ExpandPath(config.Receiver.WorkDir)
+		}
+	}
 
 	// Create channel for signals
 	sig := make(chan os.Signal, 1)
@@ -43,31 +67,14 @@ func main() {
 			// Warn user that a signal has been received and that opensend is shutting down
 			log.Warn().Msg("Signal received. Shutting down.")
 			// Remove opensend directory to avoid future conflicts
-			_ = os.RemoveAll(opensendDir)
+			_ = os.RemoveAll(*workDir)
 			// Exit with code 0
 			os.Exit(0)
 		}
 	}()
 
-	// Create --send-to flag to send to a specific IP
-	sendTo := flag.String("send-to", "", "Use IP address of receiver instead of mDNS")
-	// Create --dest-dir flag to save to a specified folder
-	destDir := flag.String("dest-dir", homeDir+"/Downloads", "Destination directory for files or dirs sent over opensend")
-	// Create --skip-mdns to skip service registration
-	skipMdns := flag.Bool("skip-mdns", false, "Skip zeroconf service registration (use if mdns fails)")
-	// Create -t flag for type
-	actionType := flag.String("t", "", "Type of data being sent")
-	// Create -d flag for data
-	actionData := flag.String("d", "", "Data to send")
-	// Create -s flag for sending
-	sendFlag := flag.Bool("s", false, "Send data")
-	// Create -r flag for receiving
-	recvFlag := flag.Bool("r", false, "Receive data")
-	// Parse flags
-	flag.Parse()
-
 	// Create opensend dir ignoring errors
-	_ = os.Mkdir(opensendDir, 0755)
+	_ = os.Mkdir(*workDir, 0755)
 	// If -s given
 	if *sendFlag {
 		if *actionType == "" || *actionData == "" {
@@ -119,13 +126,13 @@ func main() {
 			choiceIP = discoveredIPs[choiceIndex]
 		}
 		// Instantiate Config object
-		config := NewConfig(*actionType, *actionData)
+		parameters := NewParameters(*actionType, *actionData)
 		// Validate data in config struct
-		config.Validate()
+		parameters.Validate()
 		// Collect any files that may be required for transaction into opensend directory
-		config.CollectFiles(opensendDir)
+		parameters.CollectFiles(*workDir)
 		// Create config file in opensend directory
-		config.CreateFile(opensendDir)
+		parameters.CreateFile(*workDir)
 		// Notify user of key exchange
 		log.Info().Msg("Performing key exchange")
 		// Exchange RSA keys with receiver
@@ -135,15 +142,15 @@ func main() {
 		// Encrypt shared key using RSA public key
 		key := EncryptKey(sharedKey, rawKey)
 		// Save encrypted key in opensend directory as key.aes
-		SaveEncryptedKey(key, opensendDir+"/key.aes")
+		SaveEncryptedKey(key, *workDir+"/key.aes")
 		// Notify user file encryption is beginning
 		log.Info().Msg("Encrypting files")
 		// Encrypt all files in opensend directory using shared key
-		EncryptFiles(opensendDir, sharedKey)
+		EncryptFiles(*workDir, sharedKey)
 		// Notify user server has started
 		log.Info().Msg("Server started on port 9898")
 		// Send all files in opensend directory using an HTTP server on port 9898
-		SendFiles(opensendDir)
+		SendFiles(*workDir)
 		// If -r given
 	} else if *recvFlag {
 		// If --skip-mdns is not given
@@ -178,21 +185,21 @@ func main() {
 		// Notify user file decryption is beginning
 		log.Info().Msg("Decrypting files")
 		// Decrypt all files in opensend directory using shared key
-		DecryptFiles(opensendDir, sharedKey)
+		DecryptFiles(*workDir, sharedKey)
 		// Instantiate Config
-		config := &Config{}
+		parameters := &Parameters{}
 		// Read config file in opensend directory
-		config.ReadFile(opensendDir + "/config.json")
+		parameters.ReadFile(*workDir + "/parameters.json")
 		// Notify user that action is being executed
 		log.Info().Msg("Executing JSON action")
 		// Execute JSON action using files within opensend directory
-		config.ExecuteAction(opensendDir, *destDir)
+		parameters.ExecuteAction(*workDir, *destDir)
 	} else {
 		flag.Usage()
 		log.Fatal().Msg("You must choose sender or receiver mode using -s or -r")
 	}
 	// Remove opensend directory
-	err = os.RemoveAll(opensendDir)
+	err := os.RemoveAll(*workDir)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error removing opensend directory")
 	}

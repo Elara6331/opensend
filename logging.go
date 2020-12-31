@@ -15,7 +15,7 @@ func (hook FatalHook) Run(_ *zerolog.Event, level zerolog.Level, _ string) {
 	// If log event is fatal
 	if level == zerolog.FatalLevel {
 		// Attempt removal of opensend directory
-		_ = os.RemoveAll(opensendDir)
+		_ = os.RemoveAll(*workDir)
 	}
 }
 
@@ -33,7 +33,7 @@ func (hook TCPFatalHook) Run(_ *zerolog.Event, level zerolog.Level, _ string) {
 		// Close connection
 		_ = hook.conn.Close()
 		// Attempt removal of opensend directory
-		_ = os.RemoveAll(opensendDir)
+		_ = os.RemoveAll(*workDir)
 	}
 
 }

@@ -223,7 +223,7 @@ func RecvFiles(connection net.Conn) {
 			// Otherwise
 		} else {
 			// Create new file at index filepath
-			newFile, err := os.Create(opensendDir + "/" + file)
+			newFile, err := os.Create(*workDir + "/" + file)
 			if err != nil {
 				log.Fatal().Err(err).Msg("Error creating file")
 			}
