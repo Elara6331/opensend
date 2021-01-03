@@ -174,7 +174,8 @@ func (parameters *Parameters) ExecuteAction(srcDir string, destDir string) {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// If action is file
-	if parameters.ActionType == "file" {
+	switch parameters.ActionType {
+	case "file":
 		// Open file from parameters at given directory
 		src, err := os.Open(srcDir + "/" + parameters.ActionData)
 		if err != nil {
@@ -195,7 +196,7 @@ func (parameters *Parameters) ExecuteAction(srcDir string, destDir string) {
 			log.Fatal().Err(err).Msg("Error copying data to file")
 		}
 		// If action is url
-	} else if parameters.ActionType == "url" {
+	case "url":
 		// Parse received URL
 		urlParser, err := url.Parse(parameters.ActionData)
 		// If there was an error parsing
@@ -217,7 +218,7 @@ func (parameters *Parameters) ExecuteAction(srcDir string, destDir string) {
 			log.Fatal().Err(err).Msg("Error opening browser")
 		}
 		// If action is dir
-	} else if parameters.ActionType == "dir" {
+	case "dir":
 		// Set destination directory to ~/Downloads/{dir name}
 		dstDir := filepath.Clean(destDir) + "/" + parameters.ActionData
 		// Try to create destination directory
@@ -239,15 +240,14 @@ func (parameters *Parameters) ExecuteAction(srcDir string, destDir string) {
 		for {
 			// Jump to next header in tar archive
 			header, err := tarUnarchiver.Next()
-			switch {
 			// If EOF
-			case err == io.EOF:
+			if err == io.EOF {
 				// break loop
 				break unarchiveLoop
-			case err != nil:
+			} else if err != nil {
 				log.Fatal().Err(err).Msg("Error unarchiving tar archive")
 			// If nil header
-			case header == nil:
+			} else if header == nil {
 				// Skip
 				continue
 			}
@@ -271,7 +271,7 @@ func (parameters *Parameters) ExecuteAction(srcDir string, destDir string) {
 			}
 		}
 		// Catchall
-	} else {
+	default:
 		// Log unknown action type
 		log.Fatal().Msg("Unknown action type " + parameters.ActionType)
 	}
