@@ -1,0 +1,12 @@
+[sender]
+workingDirectory = "~/.opensend"
+
+[receiver]
+skipZeroconf = false
+workingDirectory = "~/.opensend"
+destinationDirectory = "~/Downloads"
+
+[targets]
+
+    [targets.coral]
+    ip = "192.168.1.2"

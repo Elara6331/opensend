@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"crypto/rand"
 	"encoding/hex"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"fmt"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -23,9 +23,6 @@ func main() {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 
-	confPath := GetConfigPath()
-	config := NewConfig(confPath)
-
 	// Create --send-to flag to send to a specific IP
 	sendTo := flag.String("send-to", "", "Use IP address of receiver instead of mDNS")
 	// Create --dest-dir flag to save to a specified folder
@@ -33,26 +30,48 @@ func main() {
 	workDir = flag.String("work-dir", "", "Working directory for opensend")
 	givenCfgPath := flag.String("config", "", "Opensend config to use")
 	// Create --skip-mdns to skip service registration
-	skipMdns := flag.Bool("skip-mdns", config.Receiver.SkipZeroconf, "Skip zeroconf service registration (use if mdns fails)")
+	skipMdns := flag.Bool("skip-mdns", false, "Skip zeroconf service registration (use if mdns fails)")
 	// Create -t flag for type
-	actionType := flag.String("t", "", "Type of data being sent")
+	actionType := flag.StringP("type", "t", "", "Type of data being sent")
 	// Create -d flag for data
-	actionData := flag.String("d", "", "Data to send")
+	actionData := flag.StringP("data", "d", "", "Data to send")
 	// Create -s flag for sending
-	sendFlag := flag.Bool("s", false, "Send data")
+	sendFlag := flag.BoolP("send", "s", false, "Send data")
 	// Create -r flag for receiving
-	recvFlag := flag.Bool("r", false, "Receive data")
+	recvFlag := flag.BoolP("receive", "r", false, "Receive data")
+	targetFlag := flag.StringP("target", "T", "", "Target as defined in opensend.toml")
 	// Parse flags
 	flag.Parse()
-	if *givenCfgPath != "" {
+
+	// Declare config variable
+	var config *Config
+	// If config flag not provided
+	if *givenCfgPath == "" {
+		// Get config path
+		confPath := GetConfigPath()
+		// Read config at path
+		config = NewConfig(confPath)
+	} else {
+		// Otherwise, read config at provided path
 		config = NewConfig(*givenCfgPath)
 	}
+
+	// If work directory flag not provided
 	if *workDir == "" {
+		// If send flag provided
 		if *sendFlag {
+			// Set work directory to sender as defined in config
 			*workDir = ExpandPath(config.Sender.WorkDir)
 		} else {
+			// Otherwise set work directory to receiver as defined in config
 			*workDir = ExpandPath(config.Receiver.WorkDir)
 		}
+	}
+
+	// If target flag provided
+	if *targetFlag != "" {
+		// Set IP to target's IP
+		*sendTo = config.Targets[*targetFlag].IP
 	}
 
 	// Create channel for signals

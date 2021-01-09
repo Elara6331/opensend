@@ -12,20 +12,24 @@ import (
 // Struct for unmarshaling of opensend TOML configs
 type Config struct {
 	Receiver ReceiverConfig
-	Sender   SenderConfig
-	Targets  map[string]map[string]string
+	Sender SenderConfig
+	Targets map[string]Target
 }
 
 // Config section for receiver
 type ReceiverConfig struct {
-	DestDir      string `toml:"destinationDirectory"`
+	DestDir string `toml:"destinationDirectory"`
 	SkipZeroconf bool
-	WorkDir      string `toml:"workingDirectory"`
+	WorkDir string `toml:"workingDirectory"`
 }
 
 // Config section for sender
 type SenderConfig struct {
 	WorkDir string `toml:"workingDirectory"`
+}
+
+type Target struct {
+	IP string
 }
 
 // Attempt to find config path
@@ -86,5 +90,5 @@ func (config *Config) SetDefaults() {
 	// Set sender working directory to $HOME/.opensend
 	config.Sender.WorkDir = ExpandPath("~/.opensend")
 	// Set targets to an empty map[string]map[string]string
-	config.Targets = map[string]map[string]string{}
+	config.Targets = map[string]Target{}
 }
