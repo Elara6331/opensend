@@ -21,7 +21,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -63,8 +62,8 @@ func GetKey(connection net.Conn) []byte {
 	procMessage := strings.Split(strings.TrimSpace(message), ";")
 	// If ok code returned
 	if procMessage[0] == "OK" {
-		// Decode received hex string into key
-		key, err := hex.DecodeString(procMessage[1])
+		// Decode received safe base91 string into key
+		key, err := DecodeSafeString(procMessage[1])
 		if err != nil {
 			log.Fatal().Err(err).Msg("Error reading key")
 		}

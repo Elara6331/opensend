@@ -34,6 +34,7 @@ import (
 )
 
 var workDir *string
+var destDir *string
 
 func main() {
 	// Use ConsoleWriter logger
@@ -42,8 +43,10 @@ func main() {
 	// Create --send-to flag to send to a specific IP
 	sendTo := flag.String("send-to", "", "Use IP address of receiver instead of mDNS")
 	// Create --dest-dir flag to save to a specified folder
-	destDir := flag.String("dest-dir", "", "Destination directory for files or dirs sent over opensend")
+	destDir = flag.String("dest-dir", "", "Destination directory for files or dirs sent over opensend")
+	// Create --work-dir flag to perform operations in a specified directory
 	workDir = flag.String("work-dir", "", "Working directory for opensend")
+	// Create --config to select config file to use
 	givenCfgPath := flag.String("config", "", "Opensend config to use")
 	// Create --skip-mdns to skip service registration
 	skipMdns := flag.Bool("skip-mdns", false, "Skip zeroconf service registration (use if mdns fails)")
@@ -81,6 +84,15 @@ func main() {
 		} else {
 			// Otherwise set work directory to receiver as defined in config
 			*workDir = ExpandPath(config.Receiver.WorkDir)
+		}
+	}
+
+	// If destination directory flag not provided
+	if *destDir == "" {
+		// If receiver flag provided
+		if *recvFlag {
+			// Set destination directory to receiver as defined in config
+			*destDir = ExpandPath(config.Receiver.DestDir)
 		}
 	}
 

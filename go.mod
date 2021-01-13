@@ -3,6 +3,7 @@ module opensend
 go 1.15
 
 require (
+	ekyu.moe/base91 v0.2.3
 	github.com/grandcat/zeroconf v1.0.0
 	github.com/klauspost/compress v1.11.3
 	github.com/pelletier/go-toml v1.8.1

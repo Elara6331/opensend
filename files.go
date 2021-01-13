@@ -19,7 +19,7 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"encoding/hex"
+	"ekyu.moe/base91"
 	"errors"
 	"fmt"
 	"github.com/rs/zerolog"
@@ -29,9 +29,44 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
+
+// Encode byte slice to base91 encoded, escaped string for transmission
+func EncodeToSafeString(data []byte) string {
+	// Encode data to base91 string
+	base91Data := base91.EncodeToString(data)
+	// Create regex to match |, ;, and %
+	escapeRegex := regexp.MustCompile(`[|;%]`)
+	// Map each character to its escape code
+	escapeMap := map[string]string{"|": "%7C", ";": "%3B", "%": "%25"}
+	// Replace all matched characters in accordance with the function
+	escapedBase91Data := escapeRegex.ReplaceAllStringFunc(base91Data, func(in string) string {
+		// Return character mapping
+		return escapeMap[in]
+	})
+	// Return escaped base91 string
+	return escapedBase91Data
+}
+
+// Decode base91 encoded, escaped string to byte slice
+func DecodeSafeString(base91Str string) ([]byte, error) {
+	// Create regex to match %7C, %3B, %25
+	unescapeRegex := regexp.MustCompile(`%7C|%3B|%25`)
+	// Map each escape code to its character
+	escapeMap := map[string]string{"%7C": "|", "%3B": ";", "%25": "%"}
+	// Replace all matched characters in accordance with the function
+	base91Data := unescapeRegex.ReplaceAllStringFunc(base91Str, func(in string) string {
+		// Return escape code mapping
+		return escapeMap[in]
+	})
+	// Decode unescaped base91 string
+	data := base91.DecodeString(base91Data)
+	// Return byte slice
+	return data, nil
+}
 
 // Save encrypted key to file
 func SaveEncryptedKey(encryptedKey []byte, filePath string) {
@@ -100,7 +135,7 @@ connectionLoop:
 				log.Fatal().Err(err).Msg("Error reading key")
 			}
 			// Write saved key to ResponseWriter
-			_, err = fmt.Fprintln(connection, "OK;"+hex.EncodeToString(key)+";")
+			_, err = fmt.Fprintln(connection, "OK;"+EncodeToSafeString(key)+";")
 			if err != nil {
 				log.Fatal().Err(err).Msg("Error writing response")
 			}
@@ -152,8 +187,8 @@ connectionLoop:
 				// Inform user client has requested a file
 				log.Info().Str("file", file).Msg("File requested")
 			}
-			// Write file as hex to connection
-			_, err = fmt.Fprintln(connection, "OK;"+hex.EncodeToString(fileData)+";")
+			// Write file as base91 to connection
+			_, err = fmt.Fprintln(connection, "OK;"+EncodeToSafeString(fileData)+";")
 			if err != nil {
 				log.Fatal().Err(err).Msg("Error writing response")
 			}
@@ -243,8 +278,8 @@ func RecvFiles(connection net.Conn) {
 			if err != nil {
 				log.Fatal().Err(err).Msg("Error creating file")
 			}
-			// Decode file data from hex string
-			fileData, err := hex.DecodeString(strings.TrimSpace(procMessage[1]))
+			// Decode file data from base91 string
+			fileData, err := DecodeSafeString(strings.TrimSpace(procMessage[1]))
 			if err != nil {
 				log.Fatal().Err(err).Msg("Error decoding hex")
 			}
