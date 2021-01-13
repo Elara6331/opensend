@@ -29,7 +29,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -38,30 +37,16 @@ import (
 func EncodeToSafeString(data []byte) string {
 	// Encode data to base91 string
 	base91Data := base91.EncodeToString(data)
-	// Create regex to match |, ;, and %
-	escapeRegex := regexp.MustCompile(`[|;%]`)
-	// Map each character to its escape code
-	escapeMap := map[string]string{"|": "%7C", ";": "%3B", "%": "%25"}
-	// Replace all matched characters in accordance with the function
-	escapedBase91Data := escapeRegex.ReplaceAllStringFunc(base91Data, func(in string) string {
-		// Return character mapping
-		return escapeMap[in]
-	})
+	// Replace all semicolons with "-" as semicolon is used as a separator
+	escapedBase91Data := strings.ReplaceAll(base91Data, ";", "-")
 	// Return escaped base91 string
 	return escapedBase91Data
 }
 
 // Decode base91 encoded, escaped string to byte slice
 func DecodeSafeString(base91Str string) ([]byte, error) {
-	// Create regex to match %7C, %3B, %25
-	unescapeRegex := regexp.MustCompile(`%7C|%3B|%25`)
-	// Map each escape code to its character
-	escapeMap := map[string]string{"%7C": "|", "%3B": ";", "%25": "%"}
-	// Replace all matched characters in accordance with the function
-	base91Data := unescapeRegex.ReplaceAllStringFunc(base91Str, func(in string) string {
-		// Return escape code mapping
-		return escapeMap[in]
-	})
+	// Replace "-" with semicolon to reverse escape
+	base91Data := strings.ReplaceAll(base91Str, "-", ";")
 	// Decode unescaped base91 string
 	data := base91.DecodeString(base91Data)
 	// Return byte slice
