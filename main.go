@@ -59,6 +59,7 @@ func main() {
 	// Create -r flag for receiving
 	recvFlag := flag.BoolP("receive", "r", false, "Receive data")
 	targetFlag := flag.StringP("target", "T", "", "Target as defined in opensend.toml")
+	loopFlag := flag.BoolP("loop", "L", false, "Continuously wait for connections and handle them concurrently")
 	// Parse flags
 	flag.Parse()
 
@@ -198,7 +199,62 @@ func main() {
 		log.Info().Msg("Server started on port 9898")
 		// Send all files in opensend directory using an HTTP server on port 9898
 		SendFiles(*workDir)
-		// If -r given
+	} else if *recvFlag && *loopFlag {
+		// Declare zeroconf shutdown variable
+		var zeroconfShutdown func()
+		for {
+			// Create opensend dir ignoring errors
+			_ = os.Mkdir(*workDir, 0755)
+			// If --skip-mdns is not given
+			if !*skipMdns {
+				// Register {hostname}._opensend._tcp.local. mDNS service and pass shutdown function
+				zeroconfShutdown = RegisterService()
+			}
+			// Notify user keypair is being generated
+			log.Info().Msg("Generating RSA keypair")
+			// Generate keypair
+			privateKey, publicKey := GenerateRSAKeypair()
+			// Notify user opensend is waiting for key exchange
+			log.Info().Msg("Waiting for sender key exchange")
+			// Exchange keys with sender
+			senderIP := ReceiverKeyExchange(publicKey)
+			// If --skip-mdns is not given
+			if !*skipMdns {
+				// Shutdown zeroconf service as connection will be unavailable during transfer
+				zeroconfShutdown()
+			}
+			// Sleep 300ms to allow sender time to start HTTP server
+			time.Sleep(300 * time.Millisecond)
+			// Notify user files are being received
+			log.Info().Msg("Receiving files from server (This may take a while)")
+			// Connect to sender's TCP socket
+			connection := ConnectToSender(senderIP)
+			// Get files from sender and place them into the opensend directory
+			RecvFiles(connection)
+			// Get encrypted shared key from sender
+			encryptedKey := GetKey(connection)
+			// Send stop signal to sender's HTTP server
+			SendSrvStopSignal(connection)
+			// Decrypt shared key
+			sharedKey := DecryptKey(encryptedKey, privateKey)
+			// Notify user file decryption is beginning
+			log.Info().Msg("Decrypting files")
+			// Decrypt all files in opensend directory using shared key
+			DecryptFiles(*workDir, sharedKey)
+			// Instantiate Config
+			parameters := &Parameters{}
+			// Read config file in opensend directory
+			parameters.ReadFile(*workDir + "/parameters.json")
+			// Notify user that action is being executed
+			log.Info().Msg("Executing JSON action")
+			// Execute JSON action using files within opensend directory
+			parameters.ExecuteAction(*workDir, *destDir)
+			// Remove opensend directory
+			err := os.RemoveAll(*workDir)
+			if err != nil {
+				log.Fatal().Err(err).Msg("Error removing opensend directory")
+			}
+		}
 	} else if *recvFlag {
 		// If --skip-mdns is not given
 		if !*skipMdns {
