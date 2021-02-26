@@ -18,14 +18,13 @@ package main
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
 	"github.com/klauspost/compress/zstd"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/crypto/chacha20poly1305"
 	"io"
 	"io/ioutil"
 	"os"
@@ -67,25 +66,20 @@ func CompressAndEncryptFile(filePath string, newFilePath string, sharedKey strin
 	md5Hash.Write([]byte(sharedKey))
 	// Encode md5 hash bytes into hexadecimal
 	hashedKey := hex.EncodeToString(md5Hash.Sum(nil))
-	// Create new AES cipher
-	block, err := aes.NewCipher([]byte(hashedKey))
+	// Create new AES c20cipher
+	c20cipher, err := chacha20poly1305.NewX([]byte(hashedKey))
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error creating AES cipher")
-	}
-	// Create GCM for AES cipher
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error creating GCM")
+		log.Fatal().Err(err).Msg("Error creating ChaCha20-Poly1305 cipher")
 	}
 	// Make byte slice for nonce
-	nonce := make([]byte, gcm.NonceSize())
+	nonce := make([]byte, c20cipher.NonceSize())
 	// Read random bytes into nonce slice
 	_, err = io.ReadFull(rand.Reader, nonce)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error creating nonce")
 	}
 	// Encrypt data
-	ciphertext := gcm.Seal(nonce, nonce, data, nil)
+	ciphertext := c20cipher.Seal(nonce, nonce, data, nil)
 	// Create new file
 	newFile, err := os.Create(newFilePath)
 	if err != nil {
@@ -116,18 +110,16 @@ func DecryptAndDecompressFile(filePath string, newFilePath string, sharedKey str
 	md5Hash.Write([]byte(sharedKey))
 	hashedKey := hex.EncodeToString(md5Hash.Sum(nil))
 	// Create new AES cipher
-	block, _ := aes.NewCipher([]byte(hashedKey))
-	// Create GCM for AES cipher
-	gcm, err := cipher.NewGCM(block)
+	c20cipher, err := chacha20poly1305.NewX([]byte(hashedKey))
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error creating GCM")
+		log.Fatal().Err(err).Msg("Error creating ChaCha20-Poly1305 cipher")
 	}
 	// Get standard GCM nonce size
-	nonceSize := gcm.NonceSize()
+	nonceSize := c20cipher.NonceSize()
 	// Get nonce and ciphertext from data
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
 	// Decrypt data
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := c20cipher.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error decrypting data")
 	}

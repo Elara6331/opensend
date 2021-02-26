@@ -10,4 +10,5 @@ require (
 	github.com/pkg/browser v0.0.0-20201112035734-206646e67786
 	github.com/rs/zerolog v1.20.0
 	github.com/spf13/pflag v1.0.5
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 )
