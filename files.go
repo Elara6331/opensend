@@ -26,14 +26,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 // Save encrypted key to file
 func SaveEncryptedKey(encryptedKey []byte, filePath string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create file at given file path
 	keyFile, err := os.Create(filePath)
 	if err != nil {
@@ -53,7 +51,6 @@ func SaveEncryptedKey(encryptedKey []byte, filePath string) {
 // Create HTTP server to transmit files
 func SendFiles(dir string) {
 	// Use ConsoleWriter logger with normal FatalHook
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create TCP listener on port 9898
 	listener, err := net.Listen("tcp", ":9898")
 	if err != nil {
@@ -138,7 +135,6 @@ func NewSender(senderAddr string) *Sender {
 // Get files from sender
 func RecvFiles(sender *Sender) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	indexReader, code, err := sender.Get("/index")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error getting index")

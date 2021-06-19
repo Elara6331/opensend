@@ -22,16 +22,13 @@ import (
 	"crypto/sha256"
 	"io/ioutil"
 	"net/http"
-	"os"
 
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 // Generate RSA keypair
 func GenerateRSAKeypair() (*rsa.PrivateKey, *rsa.PublicKey) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Generate private/public RSA keypair
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -46,7 +43,6 @@ func GenerateRSAKeypair() (*rsa.PrivateKey, *rsa.PublicKey) {
 // Get public key from sender
 func GetKey(sender *Sender) []byte {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Send key request to connection
 	keyReader, code, err := sender.Get("/key")
 	if err != nil {
@@ -75,7 +71,6 @@ func GetKey(sender *Sender) []byte {
 // Encrypt shared key with received public key
 func EncryptKey(sharedKey string, recvPubKey *rsa.PublicKey) []byte {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Encrypt shared key using RSA
 	encryptedSharedKey, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, recvPubKey, []byte(sharedKey), nil)
 	if err != nil {

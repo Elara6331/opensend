@@ -18,25 +18,25 @@ package main
 
 import (
 	"errors"
-	"github.com/pelletier/go-toml"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"os"
+
+	"github.com/pelletier/go-toml"
+	"github.com/rs/zerolog/log"
 )
 
 // Struct for unmarshaling of opensend TOML configs
 type Config struct {
 	Receiver ReceiverConfig
-	Sender SenderConfig
-	Targets map[string]Target
+	Sender   SenderConfig
+	Targets  map[string]Target
 }
 
 // Config section for receiver
 type ReceiverConfig struct {
-	DestDir string `toml:"destinationDirectory"`
+	DestDir      string `toml:"destinationDirectory"`
 	SkipZeroconf bool
-	WorkDir string `toml:"workingDirectory"`
+	WorkDir      string `toml:"workingDirectory"`
 }
 
 // Config section for sender
@@ -51,7 +51,6 @@ type Target struct {
 // Attempt to find config path
 func GetConfigPath() string {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Possible config locations
 	configLocations := []string{"~/.config/opensend.toml", "/etc/opensend.toml"}
 	// For every possible location
@@ -73,7 +72,6 @@ func GetConfigPath() string {
 // Create new config object using values from given path
 func NewConfig(path string) *Config {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create new empty config struct
 	newConfig := &Config{}
 	// Set config defaults

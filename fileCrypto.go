@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	"github.com/klauspost/compress/zstd"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/chacha20poly1305"
 )
@@ -37,7 +36,6 @@ import (
 // Encrypt given file using the shared key
 func CompressAndEncryptFile(filePath string, newFilePath string, sharedKey string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Read data from file
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -100,7 +98,6 @@ func CompressAndEncryptFile(filePath string, newFilePath string, sharedKey strin
 // Decrypt given file using the shared key
 func DecryptAndDecompressFile(filePath string, newFilePath string, sharedKey string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Read data from file
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -149,7 +146,6 @@ func DecryptAndDecompressFile(filePath string, newFilePath string, sharedKey str
 // Encrypt files in given directory using shared key
 func EncryptFiles(dir string, sharedKey string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Walk given directory
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		// If error reading, return err
@@ -177,7 +173,6 @@ func EncryptFiles(dir string, sharedKey string) {
 // Decrypt files in given directory using shared key
 func DecryptFiles(dir string, sharedKey string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Walk given directory
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		// If error reading, return err

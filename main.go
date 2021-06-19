@@ -29,7 +29,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	flag "github.com/spf13/pflag"
 )
@@ -39,7 +38,6 @@ var destDir *string
 
 func main() {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 
 	// Create --send-to flag to send to a specific IP
 	sendTo := flag.String("send-to", "", "Use IP address of receiver instead of mDNS")

@@ -27,7 +27,6 @@ import (
 
 	"github.com/mholt/archiver/v3"
 	"github.com/pkg/browser"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -66,7 +65,6 @@ func (parameters *Parameters) Validate() {
 // Create config file
 func (parameters *Parameters) CreateFile(dir string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create parameters file at given directory
 	configFile, err := os.Create(dir + "/parameters.msgpack")
 	if err != nil {
@@ -91,7 +89,6 @@ func (parameters *Parameters) CreateFile(dir string) {
 // Collect all required files into given directory
 func (parameters *Parameters) CollectFiles(dir string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// If action type is file
 	if parameters.ActionType == "file" {
 		// Open file path in parameters.ActionData
@@ -128,7 +125,6 @@ func (parameters *Parameters) CollectFiles(dir string) {
 // Read config file at given file path
 func (parameters *Parameters) ReadFile(filePath string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Read file at filePath
 	fileData, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -144,7 +140,6 @@ func (parameters *Parameters) ReadFile(filePath string) {
 // Execute action specified in config
 func (parameters *Parameters) ExecuteAction(srcDir string, destDir string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// If action is file
 	switch parameters.ActionType {
 	case "file":

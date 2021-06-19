@@ -18,17 +18,16 @@ package main
 
 import (
 	"context"
-	"github.com/grandcat/zeroconf"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"os"
 	"time"
+
+	"github.com/grandcat/zeroconf"
+	"github.com/rs/zerolog/log"
 )
 
 // Discover opensend receivers on the network
 func DiscoverReceivers() ([]string, []string) {
 	// Use ConsoleWriter logger
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create zeroconf resolver
 	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
