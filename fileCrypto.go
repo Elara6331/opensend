@@ -21,16 +21,17 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/klauspost/compress/zstd"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"golang.org/x/crypto/chacha20poly1305"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/klauspost/compress/zstd"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"golang.org/x/crypto/chacha20poly1305"
 )
 
 // Encrypt given file using the shared key
@@ -43,7 +44,7 @@ func CompressAndEncryptFile(filePath string, newFilePath string, sharedKey strin
 		log.Fatal().Err(err).Msg("Error opening file")
 	}
 	// Create buffer for compressed data
-	compressedBuffer := new(bytes.Buffer)
+	compressedBuffer := &bytes.Buffer{}
 	// Create Zstd encoder
 	zstdEncoder, err := zstd.NewWriter(compressedBuffer)
 	if err != nil {

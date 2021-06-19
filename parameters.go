@@ -18,10 +18,6 @@ package main
 
 import (
 	"archive/tar"
-	"encoding/json"
-	"github.com/pkg/browser"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -29,6 +25,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/browser"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 // Create config type to store action type and data
@@ -67,24 +68,24 @@ func (parameters *Parameters) CreateFile(dir string) {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Create parameters file at given directory
-	configFile, err := os.Create(dir + "/parameters.json")
+	configFile, err := os.Create(dir + "/parameters.msgpack")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error creating parameters file")
 	}
 	// Close parameters file at the end of this function
 	defer configFile.Close()
 	// Marshal given Parameters struct into a []byte
-	jsonData, err := json.Marshal(parameters)
+	MessagePackData, err := msgpack.Marshal(parameters)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error encoding JSON")
+		log.Fatal().Err(err).Msg("Error encoding MessagePack")
 	}
 	// Write []byte to previously created parameters file
-	bytesWritten, err := configFile.Write(jsonData)
+	bytesWritten, err := configFile.Write(MessagePackData)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error writing JSON to file")
+		log.Fatal().Err(err).Msg("Error writing MessagePack to file")
 	}
 	// Log bytes written
-	log.Info().Str("file", "parameters.json").Msg("Wrote " + strconv.Itoa(bytesWritten) + " bytes")
+	log.Info().Str("file", "parameters.msgpack").Msg("Wrote " + strconv.Itoa(bytesWritten) + " bytes")
 }
 
 // Collect all required files into given directory
@@ -178,10 +179,10 @@ func (parameters *Parameters) ReadFile(filePath string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error reading parameters file")
 	}
-	// Unmarshal data from JSON into parameters struct
-	err = json.Unmarshal(fileData, parameters)
+	// Unmarshal data from MessagePack into parameters struct
+	err = msgpack.Unmarshal(fileData, parameters)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error decoding JSON")
+		log.Fatal().Err(err).Msg("Error decoding MessagePack")
 	}
 }
 
@@ -262,7 +263,7 @@ func (parameters *Parameters) ExecuteAction(srcDir string, destDir string) {
 				break unarchiveLoop
 			} else if err != nil {
 				log.Fatal().Err(err).Msg("Error unarchiving tar archive")
-			// If nil header
+				// If nil header
 			} else if header == nil {
 				// Skip
 				continue

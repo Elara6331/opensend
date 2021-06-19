@@ -20,10 +20,7 @@ import (
 	"bufio"
 	"crypto/rand"
 	"encoding/hex"
-	flag "github.com/spf13/pflag"
 	"fmt"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"os/signal"
@@ -31,6 +28,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	flag "github.com/spf13/pflag"
 )
 
 var workDir *string
@@ -106,19 +107,16 @@ func main() {
 	// Create channel for signals
 	sig := make(chan os.Signal, 1)
 	// Send message on channel upon reception of SIGINT or SIGTERM
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	// Intercept signal
 	go func() {
-		select {
-		// Wait for sig to be written
-		case <-sig:
-			// Warn user that a signal has been received and that opensend is shutting down
-			log.Warn().Msg("Signal received. Shutting down.")
-			// Remove opensend directory to avoid future conflicts
-			_ = os.RemoveAll(*workDir)
-			// Exit with code 0
-			os.Exit(0)
-		}
+		signal := <-sig
+		// Warn user that a signal has been received and that opensend is shutting down
+		log.Warn().Str("signal", signal.String()).Msg("Signal received. Shutting down.")
+		// Remove opensend directory to avoid future conflicts
+		_ = os.RemoveAll(*workDir)
+		// Exit with code 0
+		os.Exit(0)
 	}()
 
 	// Create opensend dir ignoring errors
@@ -228,7 +226,7 @@ func main() {
 			// Notify user files are being received
 			log.Info().Msg("Receiving files from server (This may take a while)")
 			// Connect to sender's TCP socket
-			connection := ConnectToSender(senderIP)
+			connection := NewSender(senderIP)
 			// Get files from sender and place them into the opensend directory
 			RecvFiles(connection)
 			// Get encrypted shared key from sender
@@ -244,10 +242,10 @@ func main() {
 			// Instantiate Config
 			parameters := &Parameters{}
 			// Read config file in opensend directory
-			parameters.ReadFile(*workDir + "/parameters.json")
+			parameters.ReadFile(*workDir + "/parameters.msgpack")
 			// Notify user that action is being executed
-			log.Info().Msg("Executing JSON action")
-			// Execute JSON action using files within opensend directory
+			log.Info().Msg("Executing action")
+			// Execute MessagePack action using files within opensend directory
 			parameters.ExecuteAction(*workDir, *destDir)
 			// Remove opensend directory
 			err := os.RemoveAll(*workDir)
@@ -276,13 +274,13 @@ func main() {
 		// Notify user files are being received
 		log.Info().Msg("Receiving files from server (This may take a while)")
 		// Connect to sender's TCP socket
-		connection := ConnectToSender(senderIP)
+		sender := NewSender(senderIP)
 		// Get files from sender and place them into the opensend directory
-		RecvFiles(connection)
+		RecvFiles(sender)
 		// Get encrypted shared key from sender
-		encryptedKey := GetKey(connection)
+		encryptedKey := GetKey(sender)
 		// Send stop signal to sender's HTTP server
-		SendSrvStopSignal(connection)
+		SendSrvStopSignal(sender)
 		// Decrypt shared key
 		sharedKey := DecryptKey(encryptedKey, privateKey)
 		// Notify user file decryption is beginning
@@ -292,10 +290,10 @@ func main() {
 		// Instantiate Config
 		parameters := &Parameters{}
 		// Read config file in opensend directory
-		parameters.ReadFile(*workDir + "/parameters.json")
+		parameters.ReadFile(*workDir + "/parameters.msgpack")
 		// Notify user that action is being executed
-		log.Info().Msg("Executing JSON action")
-		// Execute JSON action using files within opensend directory
+		log.Info().Msg("Executing Action")
+		// Execute MessagePack action using files within opensend directory
 		parameters.ExecuteAction(*workDir, *destDir)
 	} else {
 		flag.Usage()

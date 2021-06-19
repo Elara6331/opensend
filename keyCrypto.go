@@ -17,16 +17,15 @@
 package main
 
 import (
-	"bufio"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"net"
-	"os"
-	"strings"
 )
 
 // Generate RSA keypair
@@ -45,25 +44,18 @@ func GenerateRSAKeypair() (*rsa.PrivateKey, *rsa.PublicKey) {
 }
 
 // Get public key from sender
-func GetKey(connection net.Conn) []byte {
+func GetKey(sender *Sender) []byte {
 	// Use ConsoleWriter logger
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Hook(FatalHook{})
 	// Send key request to connection
-	_, err := fmt.Fprintln(connection, "key;")
+	keyReader, code, err := sender.Get("/key")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error sending key request")
 	}
-	// Read received message
-	message, err := bufio.NewReader(connection).ReadString('\n')
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error getting key")
-	}
-	// Process received message
-	procMessage := strings.Split(strings.TrimSpace(message), ";")
 	// If ok code returned
-	if procMessage[0] == "OK" {
-		// Decode received safe base91 string into key
-		key, err := DecodeSafeString(procMessage[1])
+	if code == http.StatusOK {
+		// Read received bytes into key
+		key, err := ioutil.ReadAll(keyReader)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Error reading key")
 		}
