@@ -17,15 +17,15 @@
 package main
 
 import (
-	"archive/tar"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
+	"github.com/mholt/archiver/v3"
 	"github.com/pkg/browser"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -116,52 +116,7 @@ func (parameters *Parameters) CollectFiles(dir string) {
 		// Replace file path in parameters.ActionData with file name
 		parameters.ActionData = filepath.Base(parameters.ActionData)
 	} else if parameters.ActionType == "dir" {
-		// Create tar archive
-		tarFile, err := os.Create(dir + "/" + filepath.Base(parameters.ActionData) + ".tar")
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error creating file")
-		}
-		// Close tar file at the end of this function
-		defer tarFile.Close()
-		// Create writer for tar archive
-		tarArchiver := tar.NewWriter(tarFile)
-		// Close archiver at the end of this function
-		defer tarArchiver.Close()
-		// Walk given directory
-		err = filepath.Walk(parameters.ActionData, func(path string, info os.FileInfo, err error) error {
-			// Return if error walking
-			if err != nil {
-				return err
-			}
-			// Skip if file is not normal mode
-			if !info.Mode().IsRegular() {
-				return nil
-			}
-			// Create tar header for file
-			header, err := tar.FileInfoHeader(info, info.Name())
-			if err != nil {
-				return err
-			}
-			// Change header name to reflect decompressed filepath
-			header.Name = strings.TrimPrefix(strings.ReplaceAll(path, parameters.ActionData, ""), string(filepath.Separator))
-			// Write header to archive
-			if err := tarArchiver.WriteHeader(header); err != nil {
-				return err
-			}
-			// Open source file
-			src, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			// Close source file at the end of this function
-			defer src.Close()
-			// Copy source bytes to tar archive
-			if _, err := io.Copy(tarArchiver, src); err != nil {
-				return err
-			}
-			// Return at the end of the function
-			return nil
-		})
+		err := archiver.Archive([]string{parameters.ActionData}, dir+"/"+filepath.Base(parameters.ActionData)+".tar")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Error creating tar archive")
 		}
@@ -237,56 +192,15 @@ func (parameters *Parameters) ExecuteAction(srcDir string, destDir string) {
 		// If action is dir
 	case "dir":
 		// Set destination directory to ~/Downloads/{dir name}
-		dstDir := filepath.Clean(destDir) + "/" + parameters.ActionData
-		// Try to create destination directory
-		err := os.MkdirAll(dstDir, 0755)
+		dstDir := filepath.Dir(filepath.Clean(destDir) + "/" + parameters.ActionData)
+
+		fmt.Println(dstDir)
+
+		err := archiver.Unarchive(srcDir+"/"+parameters.ActionData+".tar", dstDir)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Error creating directory")
+			log.Fatal().Err(err).Msg("Error extracting tar archive")
 		}
-		// Try to open tar archive file
-		tarFile, err := os.Open(srcDir + "/" + parameters.ActionData + ".tar")
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error opening tar archive")
-		}
-		// Close tar archive file at the end of this function
-		defer tarFile.Close()
-		// Create tar reader to unarchive tar archive
-		tarUnarchiver := tar.NewReader(tarFile)
 		// Loop to recursively unarchive tar file
-	unarchiveLoop:
-		for {
-			// Jump to next header in tar archive
-			header, err := tarUnarchiver.Next()
-			// If EOF
-			if err == io.EOF {
-				// break loop
-				break unarchiveLoop
-			} else if err != nil {
-				log.Fatal().Err(err).Msg("Error unarchiving tar archive")
-				// If nil header
-			} else if header == nil {
-				// Skip
-				continue
-			}
-			// Set target path to header name in destination dir
-			targetPath := filepath.Join(dstDir, header.Name)
-			switch header.Typeflag {
-			// If regular file
-			case tar.TypeReg:
-				// Try to create containing folder ignoring errors
-				_ = os.MkdirAll(filepath.Dir(targetPath), 0755)
-				// Create file with mode contained in header at target path
-				dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-				if err != nil {
-					log.Fatal().Err(err).Msg("Error creating file during unarchiving")
-				}
-				// Copy data from tar archive into file
-				_, err = io.Copy(dstFile, tarUnarchiver)
-				if err != nil {
-					log.Fatal().Err(err).Msg("Error copying data to file")
-				}
-			}
-		}
 		// Catchall
 	default:
 		// Log unknown action type
