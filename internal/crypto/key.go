@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package main
+package crypto
 
 import (
 	"crypto/rand"
@@ -24,6 +24,7 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
+	"go.arsenm.dev/opensend/internal/transfer"
 )
 
 // Generate RSA keypair
@@ -41,7 +42,7 @@ func GenerateRSAKeypair() (*rsa.PrivateKey, *rsa.PublicKey) {
 }
 
 // Get public key from sender
-func GetKey(sender *Sender) []byte {
+func GetKey(sender *transfer.Sender) []byte {
 	// Use ConsoleWriter logger
 	// Send key request to connection
 	keyReader, code, err := sender.Get("/key")

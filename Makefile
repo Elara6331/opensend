@@ -1,7 +1,7 @@
 GOBUILD ?= go build
 
-all: main.go logging.go keyExchange.go keyCrypto.go files.go fileCrypto.go deviceDiscovery.go config.go
-	$(GOBUILD)
+all: cmd/opensend/main.go
+	$(GOBUILD) ./cmd/opensend
 
 install: opensend opensend.toml
 	install -Dm755 opensend $(DESTDIR)/usr/bin/opensend

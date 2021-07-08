@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package main
+package transfer
 
 import (
 	"io"
@@ -133,7 +133,7 @@ func NewSender(senderAddr string) *Sender {
 }
 
 // Get files from sender
-func RecvFiles(sender *Sender) {
+func RecvFiles(sender *Sender, workDir string) {
 	// Use ConsoleWriter logger
 	indexReader, code, err := sender.Get("/index")
 	if err != nil {
@@ -166,7 +166,7 @@ func RecvFiles(sender *Sender) {
 			// Otherwise
 		} else {
 			// Create new file at index filepath
-			newFile, err := os.Create(*workDir + "/" + file)
+			newFile, err := os.Create(workDir + "/" + file)
 			if err != nil {
 				log.Fatal().Err(err).Msg("Error creating file")
 			}

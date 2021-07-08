@@ -1,4 +1,4 @@
-module opensend
+module go.arsenm.dev/opensend
 
 go 1.15
 
